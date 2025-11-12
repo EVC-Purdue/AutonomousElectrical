@@ -1,5 +1,6 @@
-main.c:66:5:main	1
-main.c:110:6:SystemClock_Config	3
-main.c:158:13:MX_USART2_UART_Init	2
-main.c:191:13:MX_GPIO_Init	1
-main.c:231:6:Error_Handler	1
+main.c:69:5:main	1
+main.c:118:6:SystemClock_Config	3
+main.c:166:13:MX_SPI2_Init	2
+main.c:203:13:MX_UART4_Init	2
+main.c:236:13:MX_GPIO_Init	1
+main.c:284:6:Error_Handler	1
