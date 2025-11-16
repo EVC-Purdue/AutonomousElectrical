@@ -22,6 +22,8 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdint.h>
+
+#include "vesc_uart.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -36,7 +38,7 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-
+#define MAX_RPM (200)
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -122,7 +124,10 @@ int main(void)
 	/* USER CODE BEGIN 2 */
 
 	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
-	HAL_DAC_Start(&hdac, DAC_CHANNEL_1);
+	// HAL_DAC_Start(&hdac, DAC_CHANNEL_1);
+
+	vesc_uart_init(&huart4);
+
 	uint8_t rx_buff[4] = {0};
 
 	/* USER CODE END 2 */
@@ -142,10 +147,13 @@ int main(void)
 		// 0-(2^16-1) = -180 to 180 degrees steering angle = 0-360 degrees servo angle
 		uint16_t servo_raw_unscaled = ((uint16_t)rx_buff[2] << 8) | rx_buff[3];
 
-		uint16_t motor_scaled_dac = (motor_raw_unscaled >> 4); // Scale 16-bit to 12-bit
-		HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, motor_scaled_dac);
+		// uint16_t motor_scaled_dac = (motor_raw_unscaled >> 4); // Scale 16-bit to 12-bit
+		// HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, motor_scaled_dac);
 
-		uint16_t servo_angle = (uint32_t)servo_raw_unscaled * 360 / (1 << 16); // Scale to 0-360 degrees
+		int32_t motor_rpm = ((int32_t)motor_raw_unscaled * MAX_RPM) >> 16; // Scale to 0-MAX_RPM
+		vesc_set_rpm(motor_rpm);
+
+		uint16_t servo_angle = ((uint32_t)servo_raw_unscaled * 360) >> 16; // Scale to 0-360 degrees
 		SetServoAngle(servo_angle);
 
 		// Toggle LED

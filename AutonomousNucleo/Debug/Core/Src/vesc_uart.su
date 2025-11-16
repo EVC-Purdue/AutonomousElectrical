@@ -1,0 +1,16 @@
+../Core/Src/vesc_uart.c:10:17:crc16	24	static
+../Core/Src/vesc_uart.c:32:16:buffer_get_int32	24	static
+../Core/Src/vesc_uart.c:42:16:buffer_get_int16	24	static
+../Core/Src/vesc_uart.c:50:14:buffer_get_float16	24	static
+../Core/Src/vesc_uart.c:55:14:buffer_get_float32	24	static
+../Core/Src/vesc_uart.c:61:13:send_packet	56	dynamic
+../Core/Src/vesc_uart.c:90:6:vesc_uart_init	16	static
+../Core/Src/vesc_uart.c:97:6:vesc_set_duty	32	static
+../Core/Src/vesc_uart.c:112:6:vesc_set_current	32	static
+../Core/Src/vesc_uart.c:127:6:vesc_set_current_brake	32	static
+../Core/Src/vesc_uart.c:142:6:vesc_set_rpm	24	static
+../Core/Src/vesc_uart.c:156:6:vesc_set_pos	32	static
+../Core/Src/vesc_uart.c:171:6:vesc_get_values	16	static
+../Core/Src/vesc_uart.c:179:13:process_packet	24	static
+../Core/Src/vesc_uart.c:214:6:vesc_uart_process	24	static
+../Core/Src/vesc_uart.c:263:13:vesc_values_received	16	static
