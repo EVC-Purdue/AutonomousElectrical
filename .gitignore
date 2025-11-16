@@ -1,3 +1,11 @@
+# STM32CubeIDE
+AutonomousNucleo/Debug/
+AutonomousNucleo/Release/
+AutonomousNucleo/.settings/
+AutonomousNucleo/.metadata/
+
+
+
 # Prerequisites
 *.d
 
