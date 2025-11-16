@@ -80,7 +80,7 @@ void Servo_SetPulse(uint16_t us) {
     __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, us);
 }
 
-uint16_t AngleToPulse(int angle) {
+uint16_t AngleToPulse(int16_t angle) {
     if (angle < 0)
         angle = 0;
     if (angle > 360)
@@ -88,14 +88,14 @@ uint16_t AngleToPulse(int angle) {
     return 500 + ((2000 * angle) / 360);
 }
 
-void SetServoAngle(int angle) {
+void SetServoAngle(int16_t angle) {
     Servo_SetPulse(AngleToPulse(angle));
 }
 
 // VESC callback
 float g_received_rpm = -1.0f;
 
-void vesc_values_received_cb(vesc_values_t *values) {
+void vesc_values_received_cb(vesc_values_t* values) {
     g_received_rpm = values->rpm;
 }
 
@@ -169,6 +169,10 @@ int main(void) {
 
         uint16_t servo_angle = ((uint32_t)servo_raw_unscaled * 360) >> 16; // Scale to 0-360 degrees
         SetServoAngle(servo_angle);
+
+        if (x % 100 == 0) {
+            vesc_get_values();
+        }
 
         vesc_uart_process(vesc_values_received_cb);
 
@@ -440,7 +444,7 @@ void Error_Handler(void) {
  * @param  line: assert_param error line source number
  * @retval None
  */
-void assert_failed(uint8_t *file, uint32_t line) {
+void assert_failed(uint8_t* file, uint32_t line) {
     /* USER CODE BEGIN 6 */
     /* User can add his own implementation to report the file name and line number,
 	   ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
