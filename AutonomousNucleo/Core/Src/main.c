@@ -132,7 +132,8 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	HAL_SPI_Receive(&hspi2, rx_buff, 4, HAL_MAX_DELAY);
+	HAL_SPI_Receive(&hspi2, rx_buff, 4, HAL_MAX_DELAY); // Blocking receive
+
     // 0-(2^16-1) = 0-100% speed
     uint16_t motor_raw_unscaled = ((uint16_t)rx_buff[0] << 8) | rx_buff[1];
     // 0-(2^16-1) = -180 to 180 degrees steering angle = 0-360 degrees servo angle
@@ -143,8 +144,11 @@ int main(void)
 
     uint16_t servo_angle = (uint32_t)servo_raw_unscaled * 360 / (1 << 16); // Scale to 0-360 degrees
     SetServoAngle(servo_angle);
+
+    // Toggle LED
+    HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
     
-	x++;
+	x++; // Breakpoint-able
   }
   /* USER CODE END 3 */
 }

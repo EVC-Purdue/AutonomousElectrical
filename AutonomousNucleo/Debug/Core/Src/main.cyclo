@@ -2,10 +2,10 @@ main.c:68:6:Servo_SetPulse	3
 main.c:74:10:AngleToPulse	3
 main.c:80:6:SetServoAngle	1
 main.c:90:5:main	1
-main.c:156:6:SystemClock_Config	3
-main.c:204:13:MX_DAC_Init	3
-main.c:244:13:MX_SPI2_Init	2
-main.c:281:13:MX_TIM2_Init	6
-main.c:340:13:MX_UART4_Init	2
-main.c:373:13:MX_GPIO_Init	1
-main.c:421:6:Error_Handler	1
+main.c:160:6:SystemClock_Config	3
+main.c:208:13:MX_DAC_Init	3
+main.c:248:13:MX_SPI2_Init	2
+main.c:285:13:MX_TIM2_Init	6
+main.c:344:13:MX_UART4_Init	2
+main.c:377:13:MX_GPIO_Init	1
+main.c:425:6:Error_Handler	1
