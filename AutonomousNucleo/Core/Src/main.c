@@ -104,9 +104,11 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-    x++;
     /* USER CODE BEGIN 3 */
 	HAL_SPI_Receive(&hspi2, rx_buff, 4, HAL_MAX_DELAY);
+    uint16_t motor_raw_unscaled = ((uint16_t)rx_buff[0] << 8) | rx_buff[1];
+    uint16_t servo_raw_unscaled = ((uint16_t)rx_buff[2] << 8) | rx_buff[3];
+	x++;
   }
   /* USER CODE END 3 */
 }
