@@ -193,7 +193,7 @@ process_packet(uint8_t* data, uint16_t len, void (*vesc_values_received_cb)(vesc
 void vesc_uart_process(void (*vesc_values_received_cb)(vesc_values_t*)) {
     uint8_t byte;
 
-    if (HAL_UART_Receive(vesc_huart, &byte, 1, 10) == HAL_OK) {
+    if (HAL_UART_Receive(vesc_huart, &byte, 1, 5) == HAL_OK) {
         rx_buffer[rx_index++] = byte;
 
         // Check for complete packet
