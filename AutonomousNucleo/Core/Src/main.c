@@ -21,7 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <stdint.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -94,7 +94,7 @@ int main(void)
   MX_UART4_Init();
   /* USER CODE BEGIN 2 */
 
-  signed char rx_buff[4] = { 0 };
+  uint8_t rx_buff[4] = { 0 };
 
   /* USER CODE END 2 */
 
@@ -104,9 +104,9 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-    HAL_SPI_Receive(&hspi2, (signed char*)rx_buff, 4, HAL_MAX_DELAY);
     x++;
     /* USER CODE BEGIN 3 */
+	HAL_SPI_Receive(&hspi2, rx_buff, 4, HAL_MAX_DELAY);
   }
   /* USER CODE END 3 */
 }
