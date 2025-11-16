@@ -22,6 +22,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdint.h>
+#include <string.h>
 
 #include "vesc_uart.h"
 /* USER CODE END Includes */
