@@ -38,6 +38,8 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
+#define SPI_MSG_SIZE (4)
+
 #define MAX_RPM (200)
 /* USER CODE END PM */
 
@@ -90,8 +92,10 @@ void SetServoAngle(int angle)
 }
 
 // VESC callback
-void vesc_values_received_cb(vesc_values_t *values) {
-    
+float g_received_rpm = -1.0f;
+void vesc_values_received_cb(vesc_values_t *values)
+{
+	g_received_rpm = values->rpm;
 }
 /* USER CODE END 0 */
 
@@ -134,7 +138,8 @@ int main(void)
 
 	vesc_uart_init(&huart4);
 
-	uint8_t rx_buff[4] = {0};
+	uint8_t rx_buff[SPI_MSG_SIZE] = {0};
+	uint8_t tx_buff[SPI_MSG_SIZE] = {0};
 
 	/* USER CODE END 2 */
 
@@ -146,7 +151,8 @@ int main(void)
 		/* USER CODE END WHILE */
 
 		/* USER CODE BEGIN 3 */
-		HAL_SPI_Receive(&hspi2, rx_buff, 4, HAL_MAX_DELAY); // Blocking receive
+		memcpy(tx_buff, &g_received_rpm, sizeof(g_received_rpm));						// Copy as raw bytes
+		HAL_SPI_TransmitReceive(&hspi2, tx_buff, rx_buff, SPI_MSG_SIZE, HAL_MAX_DELAY); // Blocking receive-transmit
 
 		// 0-(2^16-1) = 0-100% speed
 		uint16_t motor_raw_unscaled = ((uint16_t)rx_buff[0] << 8) | rx_buff[1];
