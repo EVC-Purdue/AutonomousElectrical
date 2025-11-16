@@ -44,6 +44,8 @@ DAC_HandleTypeDef hdac;
 
 SPI_HandleTypeDef hspi2;
 
+TIM_HandleTypeDef htim2;
+
 UART_HandleTypeDef huart4;
 
 /* USER CODE BEGIN PV */
@@ -56,13 +58,29 @@ static void MX_GPIO_Init(void);
 static void MX_SPI2_Init(void);
 static void MX_UART4_Init(void);
 static void MX_DAC_Init(void);
+static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+void Servo_SetPulse(uint16_t us)
+{
+    if (us < 500) us = 500;
+    if (us > 2500) us = 2500;
+    __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, us);
+}
+uint16_t AngleToPulse(int angle)
+{
+    if (angle < 0) angle = 0;
+    if (angle > 360) angle = 360;
+    return 500 + ((2000 * angle) / 360);
+}
+void SetServoAngle(int angle)
+{
+    Servo_SetPulse(AngleToPulse(angle));
+}
 /* USER CODE END 0 */
 
 /**
@@ -96,8 +114,12 @@ int main(void)
   MX_SPI2_Init();
   MX_UART4_Init();
   MX_DAC_Init();
+  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
 
+
+  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
+  HAL_DAC_Start(&hdac, DAC_CHANNEL_1);
   uint8_t rx_buff[4] = { 0 };
 
   /* USER CODE END 2 */
@@ -111,11 +133,16 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 	HAL_SPI_Receive(&hspi2, rx_buff, 4, HAL_MAX_DELAY);
+    // 0-(2^16-1) = 0-100% speed
     uint16_t motor_raw_unscaled = ((uint16_t)rx_buff[0] << 8) | rx_buff[1];
+    // 0-(2^16-1) = -180 to 180 degrees steering angle = 0-360 degrees servo angle
     uint16_t servo_raw_unscaled = ((uint16_t)rx_buff[2] << 8) | rx_buff[3];
 
     uint16_t motor_scaled_dac = (motor_raw_unscaled >> 4); // Scale 16-bit to 12-bit
     HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, motor_scaled_dac);
+
+    uint16_t servo_angle = (uint32_t)servo_raw_unscaled * 360 / (1 << 16); // Scale to 0-360 degrees
+    SetServoAngle(servo_angle);
     
 	x++;
   }
@@ -243,6 +270,65 @@ static void MX_SPI2_Init(void)
   /* USER CODE BEGIN SPI2_Init 2 */
 
   /* USER CODE END SPI2_Init 2 */
+
+}
+
+/**
+  * @brief TIM2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM2_Init(void)
+{
+
+  /* USER CODE BEGIN TIM2_Init 0 */
+
+  /* USER CODE END TIM2_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
+
+  /* USER CODE BEGIN TIM2_Init 1 */
+
+  /* USER CODE END TIM2_Init 1 */
+  htim2.Instance = TIM2;
+  htim2.Init.Prescaler = 89;
+  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim2.Init.Period = 19999;
+  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 1500;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM2_Init 2 */
+
+  /* USER CODE END TIM2_Init 2 */
+  HAL_TIM_MspPostInit(&htim2);
 
 }
 
