@@ -176,7 +176,10 @@ void vesc_get_values(void)
 }
 
 // Process received packet
-static void process_packet(uint8_t *data, uint16_t len)
+static void process_packet(
+    uint8_t *data,
+    uint16_t len,
+    void (*vesc_values_received_cb)(vesc_values_t *))
 {
     if (len < 1)
         return;
@@ -206,12 +209,12 @@ static void process_packet(uint8_t *data, uint16_t len)
         motor_values.pid_pos_now = buffer_get_float32(data, 1000000.0, &ind);
         motor_values.vesc_id = data[ind++];
 
-        vesc_values_received(&motor_values);
+        vesc_values_received_cb(&motor_values);
     }
 }
 
 // UART receive processing (call this in main loop or use DMA)
-void vesc_uart_process(void)
+void vesc_uart_process(void (*vesc_values_received_cb)(vesc_values_t *))
 {
     uint8_t byte;
 
@@ -247,7 +250,7 @@ void vesc_uart_process(void)
 
                 if (crc_calc == crc_recv)
                 {
-                    process_packet(&rx_buffer[packet_start], payload_len);
+                    process_packet(&rx_buffer[packet_start], payload_len, vesc_values_received_cb);
                 }
 
                 rx_index = 0;
@@ -257,10 +260,4 @@ void vesc_uart_process(void)
         if (rx_index >= 512)
             rx_index = 0; // Overflow protection
     }
-}
-
-// Weak callback - override in main.c
-__weak void vesc_values_received(vesc_values_t *values)
-{
-    // Override this in your main.c
 }

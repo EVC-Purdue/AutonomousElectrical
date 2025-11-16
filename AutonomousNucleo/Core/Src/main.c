@@ -67,6 +67,7 @@ static void MX_TIM2_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+// Servo control
 void Servo_SetPulse(uint16_t us)
 {
 	if (us < 500)
@@ -86,6 +87,11 @@ uint16_t AngleToPulse(int angle)
 void SetServoAngle(int angle)
 {
 	Servo_SetPulse(AngleToPulse(angle));
+}
+
+// VESC callback
+void vesc_values_received_cb(vesc_values_t *values) {
+    
 }
 /* USER CODE END 0 */
 
@@ -155,6 +161,8 @@ int main(void)
 
 		uint16_t servo_angle = ((uint32_t)servo_raw_unscaled * 360) >> 16; // Scale to 0-360 degrees
 		SetServoAngle(servo_angle);
+
+		vesc_uart_process(vesc_values_received_cb);
 
 		// Toggle LED
 		HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);

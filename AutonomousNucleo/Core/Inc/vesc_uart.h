@@ -80,9 +80,6 @@ void vesc_set_current_brake(float current);
 void vesc_set_rpm(int32_t rpm);
 void vesc_set_pos(float pos);
 void vesc_get_values(void);
-void vesc_uart_process(void);
-
-// Callback for received values
-extern void vesc_values_received(vesc_values_t *values);
+void vesc_uart_process(void (*vesc_values_received_cb)(vesc_values_t *));
 
 #endif
