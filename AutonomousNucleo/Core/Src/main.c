@@ -42,28 +42,38 @@
 #define SPI_MSG_SIZE (4)
 
 #define MAX_RPM (200)
+
+#define UART_RX_BUFFER_SIZE (128) // idrk what size to pick this one seems nice
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
 DAC_HandleTypeDef hdac;
 
 SPI_HandleTypeDef hspi2;
+DMA_HandleTypeDef hdma_spi2_rx;
+DMA_HandleTypeDef hdma_spi2_tx;
 
 TIM_HandleTypeDef htim2;
 
 UART_HandleTypeDef huart4;
+DMA_HandleTypeDef hdma_uart4_rx;
 
 /* USER CODE BEGIN PV */
+volatile uint8_t uart_data_ready  = 0;
+volatile uint8_t process_spi_data = 0;
+volatile uint16_t dma_write_index = 0;
+float g_received_rpm              = -1.0f;
 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
 static void MX_SPI2_Init(void);
-static void MX_UART4_Init(void);
 static void MX_DAC_Init(void);
 static void MX_TIM2_Init(void);
+static void MX_UART4_Init(void);
 
 /* USER CODE BEGIN PFP */
 
@@ -71,6 +81,17 @@ static void MX_TIM2_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+// ---- SPI message buffers ---
+uint8_t rx_buff[SPI_MSG_SIZE] = {0};
+
+// Two buffers so things don't go bad (idk Claude told me to do this)
+uint8_t tx_buff_active[SPI_MSG_SIZE]  = {0};
+uint8_t tx_buff_staging[SPI_MSG_SIZE] = {0};
+
+// UART buffer (not circular?)
+uint8_t uart_rx_buffer[UART_RX_BUFFER_SIZE] = {0};
+
 // Servo control
 void Servo_SetPulse(uint16_t us) {
     if (us < 500)
@@ -93,10 +114,26 @@ void SetServoAngle(int16_t angle) {
 }
 
 // VESC callback
-float g_received_rpm = -1.0f;
-
 void vesc_values_received_cb(vesc_values_t* values) {
     g_received_rpm = values->rpm;
+}
+
+// SPI DMA Callback
+void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef* hspi) {
+    if (hspi == &hspi2) {
+        process_spi_data = 1; // Main loop can now process new data
+        HAL_SPI_TransmitReceive_DMA(&hspi2, tx_buff_active, rx_buff, SPI_MSG_SIZE);
+    }
+}
+
+// UART RX Callback (when line goes idle or buffer is full)
+// https://controllerstech.com/stm32-uart-5-receive-data-using-idle-line/
+void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef* huart, uint16_t Size) {
+    if (huart == &huart4) {
+        // Size = number of bytes received before IDLE or buffer full
+        dma_write_index = Size;
+        uart_data_ready = 1;
+    }
 }
 
 /* USER CODE END 0 */
@@ -128,19 +165,18 @@ int main(void) {
 
     /* Initialize all configured peripherals */
     MX_GPIO_Init();
+    MX_DMA_Init();
     MX_SPI2_Init();
-    MX_UART4_Init();
     MX_DAC_Init();
     MX_TIM2_Init();
+    MX_UART4_Init();
     /* USER CODE BEGIN 2 */
-
-    HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
-    // HAL_DAC_Start(&hdac, DAC_CHANNEL_1);
-
     vesc_uart_init(&huart4);
+    HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
+    HAL_UARTEx_ReceiveToIdle_DMA(&huart4, uart_rx_buffer, UART_RX_BUFFER_SIZE);
+    __HAL_DMA_DISABLE_IT(&hdma_uart4_rx, DMA_IT_HT); // disable interrupt for half transfer bc we dont care?
 
-    uint8_t rx_buff[SPI_MSG_SIZE] = {0};
-    uint8_t tx_buff[SPI_MSG_SIZE] = {0};
+    HAL_SPI_TransmitReceive_DMA(&hspi2, tx_buff_active, rx_buff, SPI_MSG_SIZE);
 
     /* USER CODE END 2 */
 
@@ -148,41 +184,54 @@ int main(void) {
     /* USER CODE BEGIN WHILE */
     volatile uint8_t x = 1;
     while (1) {
-        /* USER CODE END WHILE */
-
-        /* USER CODE BEGIN 3 */
-        // Copy as raw bytes
-        memcpy(tx_buff, &g_received_rpm, sizeof(g_received_rpm));
-        // Blocking receive-transmit
-        HAL_SPI_TransmitReceive(&hspi2, tx_buff, rx_buff, SPI_MSG_SIZE, HAL_MAX_DELAY);
-
-        // 0-(2^16-1) = 0-100% speed
-        uint16_t motor_raw_unscaled = ((uint16_t)rx_buff[0] << 8) | rx_buff[1];
-        // 0-(2^16-1) = -90 to 90 degrees steering angle = 90-270 degrees servo angle
-        uint16_t servo_raw_unscaled = ((uint16_t)rx_buff[2] << 8) | rx_buff[3];
-
-        // uint16_t motor_scaled_dac = (motor_raw_unscaled >> 4); // Scale 16-bit to 12-bit
-        // HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, motor_scaled_dac);
-
-        // Scale to 0-MAX_RPM
-        int32_t motor_rpm = ((int32_t)motor_raw_unscaled * MAX_RPM) >> 16;
-        vesc_set_rpm(motor_rpm);
-
-        // Scale to 90-270 degrees
-        uint16_t servo_angle = 90 + (((uint32_t)servo_raw_unscaled * 180) >> 16);
-        SetServoAngle(servo_angle);
-
-        if (x % 100 == 0) {
+        // Send request to VESC motor for all info every 100 loops?
+        if (x % 100 == 0)
             vesc_get_values();
+
+        // --- Process received SPI data ---
+        if (process_spi_data) {
+            process_spi_data = 0;
+            // 0-(2^16-1) = 0-100% speed
+            uint16_t motor_raw_unscaled = ((uint16_t)rx_buff[0] << 8) | rx_buff[1];
+            // 0-(2^16-1) = -90 to 90 degrees steering angle = 90-270 degrees servo angle
+            uint16_t servo_raw_unscaled = ((uint16_t)rx_buff[2] << 8) | rx_buff[3];
+            // Scale to 0-MAX_RPM
+            int32_t motor_rpm = ((int32_t)motor_raw_unscaled * MAX_RPM) >> 16;
+            vesc_set_rpm(motor_rpm);
+
+            // Scale to 90-270 degrees
+            uint16_t servo_angle = 90 + (((uint32_t)servo_raw_unscaled * 180) >> 16);
+            SetServoAngle(servo_angle);
+
+            // Allegedly bad if no critical section and only one buffer
+            float rpm_copy = g_received_rpm;
+
+            memcpy(tx_buff_staging, &rpm_copy, SPI_MSG_SIZE);
+
+            __disable_irq();
+            memcpy(tx_buff_active, tx_buff_staging, SPI_MSG_SIZE);
+            __enable_irq();
         }
 
-        vesc_uart_process(vesc_values_received_cb);
+        // --- Process UART Data ---
+        if (uart_data_ready) {
+            uart_data_ready = 0;
+            vesc_uart_process_dma(uart_rx_buffer, dma_write_index, vesc_values_received_cb);
+
+            // Restart DMA reception for next packet
+            HAL_UARTEx_ReceiveToIdle_DMA(&huart4, uart_rx_buffer, UART_RX_BUFFER_SIZE);
+            __HAL_DMA_DISABLE_IT(&hdma_uart4_rx, DMA_IT_HT); // disable interrupt for half transfer bc we dont care?
+        }
 
         // Toggle LED
         HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
 
         x++; // Breakpoint-able
     }
+    /* USER CODE END WHILE */
+
+    /* USER CODE BEGIN 3 */
+
     /* USER CODE END 3 */
 }
 
@@ -379,6 +428,25 @@ static void MX_UART4_Init(void) {
 }
 
 /**
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void) {
+    /* DMA controller clock enable */
+    __HAL_RCC_DMA1_CLK_ENABLE();
+
+    /* DMA interrupt init */
+    /* DMA1_Stream2_IRQn interrupt configuration */
+    HAL_NVIC_SetPriority(DMA1_Stream2_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(DMA1_Stream2_IRQn);
+    /* DMA1_Stream3_IRQn interrupt configuration */
+    HAL_NVIC_SetPriority(DMA1_Stream3_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(DMA1_Stream3_IRQn);
+    /* DMA1_Stream4_IRQn interrupt configuration */
+    HAL_NVIC_SetPriority(DMA1_Stream4_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(DMA1_Stream4_IRQn);
+}
+
+/**
  * @brief GPIO Initialization Function
  * @param None
  * @retval None
@@ -402,14 +470,6 @@ static void MX_GPIO_Init(void) {
     GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
-
-    /*Configure GPIO pins : PA2 PA3 */
-    GPIO_InitStruct.Pin       = GPIO_PIN_2 | GPIO_PIN_3;
-    GPIO_InitStruct.Mode      = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Pull      = GPIO_NOPULL;
-    GPIO_InitStruct.Speed     = GPIO_SPEED_FREQ_VERY_HIGH;
-    GPIO_InitStruct.Alternate = GPIO_AF7_USART2;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
     /*Configure GPIO pin : LD2_Pin */
     GPIO_InitStruct.Pin   = LD2_Pin;

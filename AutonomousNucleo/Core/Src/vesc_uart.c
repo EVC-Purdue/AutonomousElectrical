@@ -4,10 +4,28 @@
 
 #include "stm32f4xx_hal.h"
 
+// Packet states
+typedef enum {
+    STATE_WAIT_START,
+    STATE_GET_LEN_SHORT,
+    STATE_GET_LEN_LONG_1,
+    STATE_GET_LEN_LONG_2,
+    STATE_GET_PAYLOAD,
+    STATE_GET_CRC_1,
+    STATE_GET_CRC_2,
+    STATE_GET_END
+} packet_state_t;
+
 static UART_HandleTypeDef* vesc_huart;
-static uint8_t rx_buffer[512];
-static uint16_t rx_index = 0;
 static vesc_values_t motor_values;
+
+static packet_state_t packet_state = STATE_WAIT_START;
+static uint16_t payload_length     = 0;
+static uint16_t bytes_received     = 0;
+static uint16_t expected_crc       = 0;
+
+static uint16_t rx_index = 0;
+static uint8_t packet_payload_buffer[512]; // where the packet gets assembled
 
 // CRC16 calculation
 static uint16_t crc16(uint8_t* buf, uint16_t len) {
@@ -185,47 +203,92 @@ process_packet(uint8_t* data, uint16_t len, void (*vesc_values_received_cb)(vesc
         motor_values.pid_pos_now        = buffer_get_float32(data, 1000000.0, &ind);
         motor_values.vesc_id            = data[ind++];
 
-        vesc_values_received_cb(&motor_values);
+        if (vesc_values_received_cb != NULL) {
+            vesc_values_received_cb(&motor_values);
+        }
     }
 }
 
-// UART receive processing (call this in main loop or use DMA)
-void vesc_uart_process(void (*vesc_values_received_cb)(vesc_values_t*)) {
-    uint8_t byte;
-
-    if (HAL_UART_Receive(vesc_huart, &byte, 1, 5) == HAL_OK) {
-        rx_buffer[rx_index++] = byte;
-
-        // Check for complete packet
-        if (rx_index >= 2) {
-            uint16_t payload_len  = 0;
-            uint16_t packet_start = 0;
-
-            if (rx_buffer[0] == 2) {
-                payload_len  = rx_buffer[1];
-                packet_start = 2;
-            } else if (rx_buffer[0] == 3 && rx_index >= 3) {
-                payload_len  = (rx_buffer[1] << 8) | rx_buffer[2];
-                packet_start = 3;
+// Process a single byte through the packet state machine (shoutout claude idk where this actually comes from)
+static void process_byte(uint8_t byte, void (*vesc_values_received_cb)(vesc_values_t*)) {
+    switch (packet_state) {
+        case STATE_WAIT_START:
+            if (byte == 2) {
+                // Short packet format
+                packet_state       = STATE_GET_LEN_SHORT;
+                rx_index           = 0;
+            } else if (byte == 3) {
+                // Long packet format
+                packet_state       = STATE_GET_LEN_LONG_1;
+                rx_index           = 0;
             }
+            // Ignore other bytes
+            break;
 
-            uint16_t packet_len = packet_start + payload_len + 3; // +3 for CRC and end byte
+        case STATE_GET_LEN_SHORT:
+            payload_length = byte;
+            bytes_received = 0;
+            packet_state   = STATE_GET_PAYLOAD;
+            break;
 
-            if (rx_index >= packet_len && rx_buffer[packet_len - 1] == 3) {
-                // Verify CRC
-                uint16_t crc_calc = crc16(&rx_buffer[packet_start], payload_len);
-                uint16_t crc_recv = (rx_buffer[packet_start + payload_len] << 8)
-                    | rx_buffer[packet_start + payload_len + 1];
+        case STATE_GET_LEN_LONG_1:
+            payload_length = byte << 8;
+            packet_state   = STATE_GET_LEN_LONG_2;
+            break;
 
-                if (crc_calc == crc_recv) {
-                    process_packet(&rx_buffer[packet_start], payload_len, vesc_values_received_cb);
+        case STATE_GET_LEN_LONG_2:
+            payload_length |= byte;
+            bytes_received = 0;
+            packet_state   = STATE_GET_PAYLOAD;
+            break;
+
+        case STATE_GET_PAYLOAD:
+            if (rx_index < sizeof(packet_payload_buffer)) {
+                packet_payload_buffer[rx_index++] = byte;
+                bytes_received++;
+
+                if (bytes_received >= payload_length) {
+                    packet_state = STATE_GET_CRC_1;
                 }
-
-                rx_index = 0;
+            } else {
+                // Buffer overflow, reset
+                packet_state = STATE_WAIT_START;
+                rx_index     = 0;
             }
-        }
+            break;
 
-        if (rx_index >= 512)
-            rx_index = 0; // Overflow protection
+        case STATE_GET_CRC_1:
+            expected_crc = byte << 8;
+            packet_state = STATE_GET_CRC_2;
+            break;
+
+        case STATE_GET_CRC_2:
+            expected_crc |= byte;
+            packet_state = STATE_GET_END;
+            break;
+
+        case STATE_GET_END:
+            if (byte == 3) {
+                // End byte received, verify CRC
+                uint16_t calculated_crc = crc16(packet_payload_buffer, payload_length);
+
+                if (calculated_crc == expected_crc) {
+                    // Valid packet, process it
+                    process_packet(packet_payload_buffer, payload_length, vesc_values_received_cb);
+                }
+            }
+            // Reset state machine for next packet
+            packet_state = STATE_WAIT_START;
+            rx_index     = 0;
+            break;
+    }
+}
+
+// Process DMA buffer
+void vesc_uart_process_dma(uint8_t* buffer,
+                           uint16_t size,
+                           void (*vesc_values_received_cb)(vesc_values_t*)) {
+    for (uint16_t i = 0; i < size; i++) {
+        process_byte(buffer[i], vesc_values_received_cb);
     }
 }
