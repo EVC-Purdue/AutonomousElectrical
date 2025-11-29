@@ -1,3 +1,5 @@
+#if 0
+
 #include "vesc_uart.h"
 
 #include <string.h>
@@ -229,3 +231,5 @@ void vesc_uart_process(void (*vesc_values_received_cb)(vesc_values_t*)) {
             rx_index = 0; // Overflow protection
     }
 }
+
+#endif

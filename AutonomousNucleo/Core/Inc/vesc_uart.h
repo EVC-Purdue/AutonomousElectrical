@@ -1,3 +1,5 @@
+#if 0
+
 #ifndef VESC_UART_H
 #define VESC_UART_H
 
@@ -79,5 +81,7 @@ void vesc_set_rpm(int32_t rpm);
 void vesc_set_pos(float pos);
 void vesc_get_values(void);
 void vesc_uart_process(void (*vesc_values_received_cb)(vesc_values_t*));
+
+#endif
 
 #endif
