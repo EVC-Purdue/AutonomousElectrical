@@ -66,33 +66,6 @@ static void MX_TIM3_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-// Servo control
-void Servo_SetPulse(uint16_t us) {
-    if (us < 500)
-        us = 500;
-    if (us > 2500)
-        us = 2500;
-    __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, us);
-}
-
-uint16_t AngleToPulse(int16_t angle) {
-    if (angle < 0)
-        angle = 0;
-    if (angle > 360)
-        angle = 360;
-    return 500 + ((2000 * angle) / 360);
-}
-
-void SetServoAngle(int16_t angle) {
-    Servo_SetPulse(AngleToPulse(angle));
-}
-
-// // VESC callback
-// float g_received_rpm = -1.0f;
-
-// void vesc_values_received_cb(vesc_values_t* values) {
-//     g_received_rpm = values->rpm;
-// }
 
 /* USER CODE END 0 */
 
