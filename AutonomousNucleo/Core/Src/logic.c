@@ -17,6 +17,9 @@ static uint8_t gs_tx_buff[SPI_MSG_SIZE] = {0};
 
 void logic_init() {
     gs_boot_time = HAL_GetTick();
+	// Start by setting contactor to false
+	gs_contactor_state = false;
+	HAL_GPIO_WritePin(CONTACTOR_GPIO_Port, CONTACTOR_Pin, GPIO_PIN_RESET);
 }
 
 void logic_run(
