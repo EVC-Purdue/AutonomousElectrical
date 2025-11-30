@@ -25,7 +25,7 @@
 #include <stdbool.h>
 #include <string.h>
 
-#include "vesc_uart.h"
+#include "logic.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -40,9 +40,6 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-#define SPI_MSG_SIZE (4)
-
-#define MAX_RPM (200)
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -105,88 +102,17 @@ int main(void) {
 
     HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
     HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
-    // HAL_DAC_Start(&hdac, DAC_CHANNEL_1);
 
-    // vesc_uart_init(&huart4);
-
-    uint8_t rx_buff[SPI_MSG_SIZE] = {0};
-    uint8_t tx_buff[SPI_MSG_SIZE] = {0};
-
+    logic_init();
     /* USER CODE END 2 */
 
     /* Infinite loop */
     /* USER CODE BEGIN WHILE */
-    // uint16_t pwm_values[]       = {1500, 1550};
-    // const size_t pwm_values_len = 2;
-    // uint8_t pwm_values_idx      = 0;
-    // bool b1_last_state       = 0;
-    // uint32_t last_press_tick    = 0;
-    volatile uint8_t x = 1;
     while (1) {
         /* USER CODE END WHILE */
 
         /* USER CODE BEGIN 3 */
-    	x++;
-        uint8_t raw = HAL_GPIO_ReadPin(B1_GPIO_Port, B1_Pin);
-        bool button_state = (raw == GPIO_PIN_RESET);  // true when pressed
-
-
-        if (button_state) {
-            HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
-            __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, 2000);
-            x++;
-        } else {
-            HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
-            __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, 1000);
-        }
-
-        // uint32_t now = HAL_GetTick();
-        // if (button_state && !b1_last_state) {
-        //     if (now - last_press_tick > 200) // debounce
-        //     {
-        //         pwm_values_idx = (pwm_values_idx + 1) % pwm_values_len;
-
-        //         __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, pwm_values[pwm_values_idx]);
-        //         HAL_GPIO_WritePin(LD2_GPIO_Port,
-        //                           LD2_Pin,
-        //                           pwm_values_idx == 0 ? GPIO_PIN_SET : GPIO_PIN_RESET);
-
-        //         last_press_tick = now;
-        //     }
-        // }
-
-        // b1_last_state = button_state;
-
-        // Copy as raw bytes
-        // memcpy(tx_buff, &g_received_rpm, sizeof(g_received_rpm));
-        // Blocking receive-transmit
-        // HAL_SPI_TransmitReceive(&hspi2, tx_buff, rx_buff, SPI_MSG_SIZE, HAL_MAX_DELAY);
-
-        // 0-(2^16-1) = 0-100% speed
-        uint16_t motor_raw_unscaled = ((uint16_t)rx_buff[0] << 8) | rx_buff[1];
-        // 0-(2^16-1) = -90 to 90 degrees steering angle = 90-270 degrees servo angle
-        uint16_t servo_raw_unscaled = ((uint16_t)rx_buff[2] << 8) | rx_buff[3];
-
-        // uint16_t motor_scaled_dac = (motor_raw_unscaled >> 4); // Scale 16-bit to 12-bit
-        // HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, motor_scaled_dac);
-
-        // Scale to 0-MAX_RPM
-        // int32_t motor_rpm = ((int32_t)motor_raw_unscaled * MAX_RPM) >> 16;
-        // vesc_set_rpm(motor_rpm);
-
-        // Scale to 90-270 degrees
-        // uint16_t servo_angle = 90 + (((uint32_t)servo_raw_unscaled * 180) >> 16);
-        // SetServoAngle(servo_angle);
-
-        // if (x % 100 == 0) {
-        //     vesc_get_values();
-        // }
-        // vesc_uart_process(vesc_values_received_cb);
-
-        // Toggle LED
-        // HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
-
-        x++; // Breakpoint-able
+        logic_run(&hspi2, &htim2);
     }
     /* USER CODE END 3 */
 }
