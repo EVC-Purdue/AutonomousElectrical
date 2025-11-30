@@ -7,23 +7,24 @@
 
 #include "stm32f4xx_hal.h"
 
-static uint32_t boot_time   = 0;
-static bool contacter_state = false;
+static uint32_t gs_boot_time   = 0;
+static bool gs_contacter_state = false;
 
-static uint8_t rx_buff[SPI_MSG_SIZE] = {0};
-static uint8_t tx_buff[SPI_MSG_SIZE] = {0};
+static uint8_t gs_rx_buff[SPI_MSG_SIZE] = {0};
+static uint8_t gs_tx_buff[SPI_MSG_SIZE] = {0};
 
 void logic_init() {
-    boot_time = HAL_GetTick();
+    gs_boot_time = HAL_GetTick();
 }
 
 void logic_run(
 	SPI_HandleTypeDef* hspi2, // Rubik Pi 3 <-> STM32 SPI handle
-	TIM_HandleTypeDef* htim2_motor // Motor PWM TIM handle
+	TIM_HandleTypeDef* htim2_motor, // Motor PWM TIM handle
+	TIM_HandleTypeDef* htim3_steering // Steering servo PWM TIM handle
 ) {
     uint32_t now = HAL_GetTick();
-    if (now - boot_time >= CONTACTER_SET_DELAY) {
-        contacter_state = true;
+    if (now - gs_boot_time >= CONTACTER_SET_DELAY) {
+        gs_contacter_state = true;
     }
 
     // Set contacter
@@ -31,12 +32,12 @@ void logic_run(
 
     // SPI communication
     HAL_StatusTypeDef spi_stat =
-        HAL_SPI_TransmitReceive(hspi2, tx_buff, rx_buff, SPI_MSG_SIZE, SPI_TIMEOUT_MS);
+        HAL_SPI_TransmitReceive(hspi2, gs_tx_buff, gs_rx_buff, SPI_MSG_SIZE, SPI_TIMEOUT_MS);
 
 	if (spi_stat != HAL_OK) { // timeout hit
 		// Force set speed to 0
-		tx_buff[0] = 0;
-		tx_buff[1] = 0;
+		gs_tx_buff[0] = 0;
+		gs_tx_buff[1] = 0;
 	}
 
 	// Process received data
@@ -48,6 +49,9 @@ void logic_run(
 	// Set motor PWM
 	uint32_t motor_pwm = motor_unscaled_to_pwm(motor_unscaled);
 	__HAL_TIM_SET_COMPARE(htim2_motor, TIM_CHANNEL_1, motor_pwm);
+	// Set rx buffer with pwm value for confirmation
+	gs_tx_buff[0] = (motor_pwm >> 8) & 0xFF;
+	gs_tx_buff[1] = motor_pwm & 0xFF;
 
 	// Set steering servo PWM
 	// TODO
