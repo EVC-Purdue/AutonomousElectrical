@@ -3,8 +3,8 @@
 
 #include <stdint.h>
 
-#define MOTOR_PWM_MIN (1000)
-#define MOTOR_PWM_MAX (2000)
+#define MOTOR_PWM_PULSE_MIN (1000)
+#define MOTOR_PWM_PULSE_MAX (2000)
 
 
 // 0-(2^16-1) = 0-100% speed = 1000-2000 PWM pulse

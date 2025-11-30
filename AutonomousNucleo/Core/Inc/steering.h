@@ -5,13 +5,15 @@
 
 #include "stm32f4xx_hal.h"
 
-#define STEERING_MIN_PULSE_US  (500)
-#define STEERING_MAX_PULSE_US  (2500)
-#define STEERING_MIN_ANGLE_DEG (0)
-#define STEERING_MAX_ANGLE_DEG (360)
+// #define STEERING_PWM_PULSE_MIN  (500) // at 0 degrees
+// #define STEERING_PWM_PULSE_MAX  (2500) // at 360 degrees
+#define STEERING_PWM_PULSE_MIN  (1000) // at 90 degrees
+#define STEERING_PWM_PULSE_MAX  (2000) // at 270 degrees
+// #define STEERING_MIN_ANGLE_DEG  (90)
+// #define STEERING_MAX_ANGLE_DEG  (270)
 
-void steering_set_pulse(TIM_HandleTypeDef* htim2, uint16_t us);
-uint16_t steering_angle_to_pulse(int16_t angle);
-void steering_set_servo_angle(TIM_HandleTypeDef* htim2, int16_t angle);
+// 0-(2^16-1) = 90-270 degrees servo angle = 1000-2000 PWM pulse
+uint32_t steering_unscaled_to_pwm(uint16_t motor_unscaled);
+
 
 #endif

@@ -112,7 +112,7 @@ int main(void) {
         /* USER CODE END WHILE */
 
         /* USER CODE BEGIN 3 */
-        logic_run(&hspi2, &htim2);
+        logic_run(&hspi2, &htim2, &htim3);
     }
     /* USER CODE END 3 */
 }

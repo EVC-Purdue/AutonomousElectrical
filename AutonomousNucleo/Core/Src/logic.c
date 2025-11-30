@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #include "motor.h"
+#include "steering.h"
 
 #include "stm32f4xx_hal.h"
 
@@ -36,15 +37,15 @@ void logic_run(
 
 	if (spi_stat != HAL_OK) { // timeout hit
 		// Force set speed to 0
-		gs_tx_buff[0] = 0;
-		gs_tx_buff[1] = 0;
+		gs_rx_buff[0] = 0;
+		gs_rx_buff[1] = 0;
 	}
 
 	// Process received data
 	// 0-(2^16-1) = 0-100% speed = 1000-2000 PWM pulse
-	uint16_t motor_unscaled = ((uint16_t)rx_buff[0] << 8) | (uint16_t)rx_buff[1];
+	uint16_t motor_unscaled = ((uint16_t)gs_rx_buff[0] << 8) | (uint16_t)gs_rx_buff[1];
 	// 0-(2^16-1) = -90 to 90 degrees steering angle = 90-270 degrees servo angle
-	uint16_t steering_unscaled = ((uint16_t)rx_buff[2] << 8) | (uint16_t)rx_buff[3];
+	uint16_t steering_unscaled = ((uint16_t)gs_rx_buff[2] << 8) | (uint16_t)gs_rx_buff[3];
 
 	// Set motor PWM
 	uint32_t motor_pwm = motor_unscaled_to_pwm(motor_unscaled);
@@ -54,5 +55,9 @@ void logic_run(
 	gs_tx_buff[1] = motor_pwm & 0xFF;
 
 	// Set steering servo PWM
-	// TODO
+	uint32_t steering_pwm = steering_unscaled_to_pwm(steering_unscaled);
+	__HAL_TIM_SET_COMPARE(htim3_steering, TIM_CHANNEL_1, steering_pwm);
+	// Set rx buffer with pwm value for confirmation
+	gs_tx_buff[2] = (steering_pwm >> 8) & 0xFF;
+	gs_tx_buff[3] = steering_pwm & 0xFF;
 }
