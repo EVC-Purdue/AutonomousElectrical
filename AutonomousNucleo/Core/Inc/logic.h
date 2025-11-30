@@ -6,7 +6,7 @@
 
 #include "stm32f4xx_hal.h"
 
-#define CONTACTER_SET_DELAY (1000) // 1 sec after boot, set contacter state
+#define CONTACTOR_SET_DELAY (1000) // 1 sec after boot, set contactor state
 #define SPI_MSG_SIZE        (4)    // 2 bytes for motor speed, 2 bytes for steering angle
 #define SPI_TIMEOUT_MS      (100)  // If no message in this time, set speed to 0
 

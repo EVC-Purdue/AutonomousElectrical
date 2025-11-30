@@ -6,10 +6,11 @@
 #include "motor.h"
 #include "steering.h"
 
+#include "main.h"
 #include "stm32f4xx_hal.h"
 
 static uint32_t gs_boot_time   = 0;
-static bool gs_contacter_state = false;
+static bool gs_contactor_state = false;
 
 static uint8_t gs_rx_buff[SPI_MSG_SIZE] = {0};
 static uint8_t gs_tx_buff[SPI_MSG_SIZE] = {0};
@@ -24,12 +25,14 @@ void logic_run(
 	TIM_HandleTypeDef* htim3_steering // Steering servo PWM TIM handle
 ) {
     uint32_t now = HAL_GetTick();
-    if (now - gs_boot_time >= CONTACTER_SET_DELAY) {
-        gs_contacter_state = true;
+    if ((now - gs_boot_time >= CONTACTOR_SET_DELAY) && !gs_contactor_state) {
+		// Only allow setting contactor after a delay on boot
+		// If it should go back false, it should not be set again, requiring a reboot
+        gs_contactor_state = true;
     }
 
-    // Set contacter
-    // TODO
+    // Set contactor
+    HAL_GPIO_WritePin(CONTACTOR_GPIO_Port, CONTACTOR_Pin, gs_contactor_state ? GPIO_PIN_SET : GPIO_PIN_RESET);
 
     // SPI communication
     HAL_StatusTypeDef spi_stat =
