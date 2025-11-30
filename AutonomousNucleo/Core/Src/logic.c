@@ -55,14 +55,18 @@ void logic_run(
 
 	// Set motor PWM
 	uint32_t motor_pwm = motor_unscaled_to_pwm(motor_unscaled);
-	__HAL_TIM_SET_COMPARE(htim2_motor, TIM_CHANNEL_1, motor_pwm);
+	if (gs_contactor_state) {
+		__HAL_TIM_SET_COMPARE(htim2_motor, TIM_CHANNEL_1, motor_pwm);
+	}
 	// Set rx buffer with pwm value for confirmation
 	gs_tx_buff[0] = (motor_pwm >> 8) & 0xFF;
 	gs_tx_buff[1] = motor_pwm & 0xFF;
 
 	// Set steering servo PWM
 	uint32_t steering_pwm = steering_unscaled_to_pwm(steering_unscaled);
-	__HAL_TIM_SET_COMPARE(htim3_steering, TIM_CHANNEL_1, steering_pwm);
+	if (gs_contactor_state) {
+		__HAL_TIM_SET_COMPARE(htim3_steering, TIM_CHANNEL_1, steering_pwm);
+	}
 	// Set rx buffer with pwm value for confirmation
 	gs_tx_buff[2] = (steering_pwm >> 8) & 0xFF;
 	gs_tx_buff[3] = steering_pwm & 0xFF;
