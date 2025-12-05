@@ -40,7 +40,7 @@ void logic_run(SPI_HandleTypeDef* hspi2, // Rubik Pi 3 <-> STM32 SPI handle
         // Process received data
         // 0-(2^16-1) = 0-100% speed = 1000-2000 PWM pulse
         uint16_t motor_unscaled = ((uint16_t)gs_rx_buff[0] << 8) | (uint16_t)gs_rx_buff[1];
-        // 0-(2^16-1) = -90 to 90 degrees steering angle = 90-270 degrees servo angle
+        // 0-(2^16-1) = -100% to 100% = 1000-2000 PWM pulse
         uint16_t steering_unscaled = ((uint16_t)gs_rx_buff[2] << 8) | (uint16_t)gs_rx_buff[3];
 
         // Set motor PWM
