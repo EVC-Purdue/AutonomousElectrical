@@ -94,20 +94,17 @@ void logic_run(SPI_HandleTypeDef* hspi2, // Rubik Pi 3 <-> STM32 SPI handle
     }
 
     // If no valid E-stop pulse recently, open contactor
+    uint32_t now_ms = HAL_GetTick();
     // Disable interrupts to prevent race condition with ISR
     __disable_irq();
-    uint32_t now_ms = HAL_GetTick();
     if ((now_ms - gs_contactor_last_rx) > ESTOP_TIMEOUT_MS) {
         gs_contactor_on   = false;
         gs_tim5_capturing = false; // reset capturing state
-        // Set GPIO immediately while interrupts are disabled
-        HAL_GPIO_WritePin(CONTACTOR_GPIO_Port, CONTACTOR_Pin, GPIO_PIN_RESET);
-    } else {
-        // Always set contactor GPIO based on current state for consistency
-        HAL_GPIO_WritePin(CONTACTOR_GPIO_Port,
-            CONTACTOR_Pin,
-            gs_contactor_on ? GPIO_PIN_SET : GPIO_PIN_RESET);
     }
+    // Set GPIO based on current state while interrupts are disabled
+    HAL_GPIO_WritePin(CONTACTOR_GPIO_Port,
+        CONTACTOR_Pin,
+        gs_contactor_on ? GPIO_PIN_SET : GPIO_PIN_RESET);
     __enable_irq();
 
     if (spi_okay && gs_contactor_on) {
