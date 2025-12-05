@@ -16,7 +16,7 @@ static volatile uint32_t gs_contactor_last_rx = 0;
 static uint8_t gs_rx_buff[SPI_MSG_SIZE] = {0};
 static uint8_t gs_tx_buff[SPI_MSG_SIZE] = {0};
 
-// RC E-stop PWM interupt ----------------------------------------------------//
+// RC E-stop PWM interrupt ---------------------------------------------------//
 static volatile uint32_t gs_tim5_ic_rising      = 0;
 static volatile uint32_t gs_tim5_pulse_width_us = 0;
 static volatile bool gs_tim5_capturing          = false;
@@ -123,7 +123,7 @@ void logic_run(SPI_HandleTypeDef* hspi2, // Rubik Pi 3 <-> STM32 SPI handle
         gs_tx_buff[2] = (steering_pwm >> 8) & 0xFF;
         gs_tx_buff[3] = steering_pwm & 0xFF;
     } else {
-        // Attempt to stop the vechile on SPI error
+        // Attempt to stop the vehicle on SPI error
         __HAL_TIM_SET_COMPARE(htim2_motor, TIM_CHANNEL_1, MOTOR_PWM_PULSE_MIN);
 
         // Set tx buffer to 0xFF (never possible to achieve normally) on SPI error
