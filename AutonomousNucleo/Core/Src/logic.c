@@ -36,7 +36,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim) {
             if (ic_falling >= gs_tim5_ic_rising) {
                 pulse_width_us = ic_falling - gs_tim5_ic_rising;
             } else {
-                pulse_width_us = (0xFFFF - gs_tim5_ic_rising) + ic_falling + 1;
+                pulse_width_us = (0xFFFFFFFF - gs_tim5_ic_rising) + ic_falling + 1;
             }
 
             // If the the contactor switch state has changed, update GPIO
