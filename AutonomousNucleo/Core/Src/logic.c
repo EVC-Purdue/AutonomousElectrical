@@ -65,6 +65,8 @@ void logic_init() {
     HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
     // Set contactor pin low
     HAL_GPIO_WritePin(CONTACTOR_GPIO_Port, CONTACTOR_Pin, GPIO_PIN_RESET);
+    // Initialize last E-stop pulse timestamp to current tick
+    gs_contactor_last_rx = HAL_GetTick();
 }
 
 // logic_run() ---------------------------------------------------------------//
