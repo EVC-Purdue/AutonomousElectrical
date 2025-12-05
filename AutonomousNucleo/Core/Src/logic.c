@@ -8,6 +8,9 @@
 #include "steering.h"
 #include "stm32f4xx_hal.h"
 
+// Kart control --------------------------------------------------------------//
+static bool gs_contactor_on = false;
+
 // SPI communication ---------------------------------------------------------//
 static uint8_t gs_rx_buff[SPI_MSG_SIZE] = {0};
 static uint8_t gs_tx_buff[SPI_MSG_SIZE] = {0xAB, 0xCD, 0xEF, 0x01};
@@ -18,19 +21,33 @@ static volatile uint32_t gs_tim5_pulse_width_us = 0;
 static volatile bool gs_tim5_capturing          = 0;
 
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim) {
-    if (htim->Instance == TIM5 && htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1) {
         if (!gs_tim5_capturing) { // waiting for rising edge
             gs_tim5_ic_rising = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
+
+            // Switch to capture falling edge
             __HAL_TIM_SET_CAPTUREPOLARITY(htim, TIM_CHANNEL_1, TIM_INPUTCHANNELPOLARITY_FALLING);
             gs_tim5_capturing = true;
         } else { // waiting for falling edge
             uint32_t ic_falling = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
             // Handle counter rollover
+            uint32_t pulse_width_us;
             if (ic_falling >= gs_tim5_ic_rising) {
-                gs_tim5_pulse_width_us = ic_falling - gs_tim5_ic_rising;
+                pulse_width_us = ic_falling - gs_tim5_ic_rising;
             } else {
-                gs_tim5_pulse_width_us = (0xFFFF - gs_tim5_ic_rising) + ic_falling + 1;
+                pulse_width_us = (0xFFFF - gs_tim5_ic_rising) + ic_falling + 1;
             }
+
+            // If the the contactor switch state has changed, update GPIO
+            // Don't update it every time to avoid unnecessary writes
+            bool new_contactor_on = (pulse_width_us >= ESTOP_PULSE_WIDTH);
+            if (new_contactor_on != gs_contactor_on) {
+                gs_contactor_on = new_contactor_on;
+                HAL_GPIO_WritePin(CONTACTOR_GPIO_Port,
+                    CONTACTOR_Pin,
+                    gs_contactor_on ? GPIO_PIN_SET : GPIO_PIN_RESET);
+            }
+
+            // Switch back to capture rising edge
             __HAL_TIM_SET_CAPTUREPOLARITY(htim, TIM_CHANNEL_1, TIM_INPUTCHANNELPOLARITY_RISING);
             gs_tim5_capturing = false;
         }
@@ -54,15 +71,14 @@ void logic_run(SPI_HandleTypeDef* hspi2, // Rubik Pi 3 <-> STM32 SPI handle
     HAL_StatusTypeDef spi_stat =
         HAL_SPI_TransmitReceive(hspi2, gs_tx_buff, gs_rx_buff, SPI_MSG_SIZE, SPI_TIMEOUT_MS);
 
-    bool spi_okay     = (spi_stat == HAL_OK);
-    bool contactor_on = (gs_tim5_pulse_width_us >= ESTOP_PULSE_WIDTH);
+    bool spi_okay = (spi_stat == HAL_OK);
 
     // Set LED state
-    if (spi_okay && contactor_on) {
+    if (spi_okay && gs_contactor_on) {
         // Loop rate is bound/delayed by blocking SPI call
         // Toggle basically on SPI message if all is good
         HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
-    } if (spi_okay) {
+    } else if (spi_okay) {
         // Solid green to show SPI is RXing but contactor is off
         HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
     } else {
@@ -70,10 +86,11 @@ void logic_run(SPI_HandleTypeDef* hspi2, // Rubik Pi 3 <-> STM32 SPI handle
         HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
     }
 
-    // Set contactor state
+    // Contactor is immediately set in the interrupt handler
+    // but we will set it again here for consistency
     HAL_GPIO_WritePin(CONTACTOR_GPIO_Port,
         CONTACTOR_Pin,
-        contactor_on ? GPIO_PIN_SET : GPIO_PIN_RESET);
+        gs_contactor_on ? GPIO_PIN_SET : GPIO_PIN_RESET);
 
     if (spi_okay) {
         // Process received data
