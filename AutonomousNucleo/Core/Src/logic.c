@@ -18,7 +18,7 @@ static uint8_t gs_tx_buff[SPI_MSG_SIZE] = {0};
 // RC E-stop PWM interupt ----------------------------------------------------//
 static volatile uint32_t gs_tim5_ic_rising      = 0;
 static volatile uint32_t gs_tim5_pulse_width_us = 0;
-static volatile bool gs_tim5_capturing          = 0;
+static volatile bool gs_tim5_capturing          = false;
 
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim) {
     if ((htim->Instance == TIM5) && (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1)) {
