@@ -94,7 +94,7 @@ void logic_run(SPI_HandleTypeDef* hspi2, // Rubik Pi 3 <-> STM32 SPI handle
     // If no valid E-stop pulse recently, open contactor
     uint32_t now_ms = HAL_GetTick();
     if ((now_ms - gs_contactor_last_rx) > ESTOP_TIMEOUT_MS) {
-        gs_contactor_on = false;
+        gs_contactor_on   = false;
         gs_tim5_capturing = false; // reset capturing state
     }
     // Always set contactor GPIO based on current state for consistency
