@@ -9,7 +9,7 @@
 #include "stm32f4xx_hal.h"
 
 // Kart control --------------------------------------------------------------//
-static volatile bool gs_contactor_on                   = false;
+static volatile bool gs_contactor_on          = false;
 static volatile uint32_t gs_contactor_last_rx = 0;
 
 // SPI communication ---------------------------------------------------------//
@@ -103,8 +103,9 @@ void logic_run(SPI_HandleTypeDef* hspi2, // Rubik Pi 3 <-> STM32 SPI handle
     // Disable interrupts to prevent race condition with ISR
     __disable_irq();
     if ((now_ms - gs_contactor_last_rx) > ESTOP_TIMEOUT_MS) {
-        gs_contactor_on   = false;
-        gs_tim5_capturing = false; // reset capturing state
+        gs_contactor_on    = false;
+        contactor_on_local = false;
+        gs_tim5_capturing  = false; // reset capturing state
     }
     // Always set contactor GPIO based on current state for consistency
     HAL_GPIO_WritePin(CONTACTOR_GPIO_Port,
@@ -112,7 +113,7 @@ void logic_run(SPI_HandleTypeDef* hspi2, // Rubik Pi 3 <-> STM32 SPI handle
         gs_contactor_on ? GPIO_PIN_SET : GPIO_PIN_RESET);
     __enable_irq();
 
-    if (spi_okay && gs_contactor_on) {
+    if (spi_okay && contactor_on_local) {
         // Process received data
         // 0-(2^16-1) = 0-100% speed = 1000-2000 PWM pulse
         uint16_t motor_unscaled = ((uint16_t)gs_rx_buff[0] << 8) | (uint16_t)gs_rx_buff[1];
