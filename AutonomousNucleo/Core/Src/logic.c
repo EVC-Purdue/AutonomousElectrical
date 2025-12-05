@@ -8,14 +8,43 @@
 #include "steering.h"
 #include "stm32f4xx_hal.h"
 
+// SPI communication ---------------------------------------------------------//
 static uint8_t gs_rx_buff[SPI_MSG_SIZE] = {0};
-static uint8_t gs_tx_buff[SPI_MSG_SIZE] = {0};
+static uint8_t gs_tx_buff[SPI_MSG_SIZE] = {0xAB, 0xCD, 0xEF, 0x01};
 
+// RC E-stop PWM interupt ----------------------------------------------------//
+static volatile uint32_t gs_tim5_ic_rising      = 0;
+static volatile uint32_t gs_tim5_pulse_width_us = 0;
+static volatile bool gs_tim5_capturing          = 0;
+
+void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim) {
+    if (htim->Instance == TIM5 && htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1) {
+        if (!gs_tim5_capturing) { // waiting for rising edge
+            gs_tim5_ic_rising = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
+            __HAL_TIM_SET_CAPTUREPOLARITY(htim, TIM_CHANNEL_1, TIM_INPUTCHANNELPOLARITY_FALLING);
+            gs_tim5_capturing = true;
+        } else { // waiting for falling edge
+            uint32_t ic_falling = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
+            // Handle counter rollover
+            if (ic_falling >= gs_tim5_ic_rising) {
+                gs_tim5_pulse_width_us = ic_falling - gs_tim5_ic_rising;
+            } else {
+                gs_tim5_pulse_width_us = (0xFFFF - gs_tim5_ic_rising) + ic_falling + 1;
+            }
+            __HAL_TIM_SET_CAPTUREPOLARITY(htim, TIM_CHANNEL_1, TIM_INPUTCHANNELPOLARITY_RISING);
+            gs_tim5_capturing = false;
+        }
+    }
+}
+
+// logic_init() --------------------------------------------------------------//
 void logic_init() {
     // Turn off LED initially
     HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
+    // TODO: set contactor pin low
 }
 
+// logic_run() ---------------------------------------------------------------//
 void logic_run(SPI_HandleTypeDef* hspi2, // Rubik Pi 3 <-> STM32 SPI handle
     TIM_HandleTypeDef* htim2_motor,      // Motor PWM TIM handle
     TIM_HandleTypeDef* htim3_steering    // Steering servo PWM TIM handle
@@ -25,6 +54,7 @@ void logic_run(SPI_HandleTypeDef* hspi2, // Rubik Pi 3 <-> STM32 SPI handle
         HAL_SPI_TransmitReceive(hspi2, gs_tx_buff, gs_rx_buff, SPI_MSG_SIZE, SPI_TIMEOUT_MS);
 
     bool spi_okay = (spi_stat == HAL_OK);
+    bool contactor_on = (gs_tim5_pulse_width_us >= ESTOP_PULSE_WIDTH);
 
     // Set LED state
     if (spi_okay) {
@@ -35,6 +65,9 @@ void logic_run(SPI_HandleTypeDef* hspi2, // Rubik Pi 3 <-> STM32 SPI handle
         // Solid green to show ON but no SPI
         HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
     }
+
+    // Set contactor state
+    // TODO
 
     if (spi_okay) {
         // Process received data
