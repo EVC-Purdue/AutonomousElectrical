@@ -125,7 +125,6 @@ void logic_run(SPI_HandleTypeDef* hspi2, // Rubik Pi 3 <-> STM32 SPI handle
     } else {
         // Attempt to stop the vechile on SPI error
         __HAL_TIM_SET_COMPARE(htim2_motor, TIM_CHANNEL_1, MOTOR_PWM_PULSE_MIN);
-        __HAL_TIM_SET_COMPARE(htim3_steering, TIM_CHANNEL_1, 0); // Stop?
 
         // Set tx buffer to 0xFF (never possible to achieve normally) on SPI error
         for (size_t i = 0; i < SPI_MSG_SIZE; i++) {
