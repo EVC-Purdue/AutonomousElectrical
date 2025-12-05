@@ -102,7 +102,7 @@ void logic_run(SPI_HandleTypeDef* hspi2, // Rubik Pi 3 <-> STM32 SPI handle
         CONTACTOR_Pin,
         gs_contactor_on ? GPIO_PIN_SET : GPIO_PIN_RESET);
 
-    if (spi_okay) {
+    if (spi_okay && gs_contactor_on) {
         // Process received data
         // 0-(2^16-1) = 0-100% speed = 1000-2000 PWM pulse
         uint16_t motor_unscaled = ((uint16_t)gs_rx_buff[0] << 8) | (uint16_t)gs_rx_buff[1];
