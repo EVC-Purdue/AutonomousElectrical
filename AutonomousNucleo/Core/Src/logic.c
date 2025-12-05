@@ -9,7 +9,8 @@
 #include "stm32f4xx_hal.h"
 
 // Kart control --------------------------------------------------------------//
-static bool gs_contactor_on = false;
+static bool gs_contactor_on                   = false;
+static volatile uint32_t gs_contactor_last_rx = 0;
 
 // SPI communication ---------------------------------------------------------//
 static uint8_t gs_rx_buff[SPI_MSG_SIZE] = {0};
@@ -51,6 +52,9 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim) {
             // Switch back to capture rising edge
             __HAL_TIM_SET_CAPTUREPOLARITY(htim, TIM_CHANNEL_1, TIM_INPUTCHANNELPOLARITY_RISING);
             gs_tim5_capturing = false;
+
+            // Update last rx time
+            gs_contactor_last_rx = HAL_GetTick();
         }
     }
 }
@@ -87,8 +91,13 @@ void logic_run(SPI_HandleTypeDef* hspi2, // Rubik Pi 3 <-> STM32 SPI handle
         HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
     }
 
-    // Contactor is immediately set in the interrupt handler
-    // but we will set it again here for consistency
+    // If no valid E-stop pulse recently, open contactor
+    uint32_t now_ms = HAL_GetTick();
+    if ((now_ms - gs_contactor_last_rx) > ESTOP_TIMEOUT_MS) {
+        gs_contactor_on = false;
+        gs_tim5_capturing = false; // reset capturing state
+    }
+    // Always set contactor GPIO based on current state for consistency
     HAL_GPIO_WritePin(CONTACTOR_GPIO_Port,
         CONTACTOR_Pin,
         gs_contactor_on ? GPIO_PIN_SET : GPIO_PIN_RESET);
