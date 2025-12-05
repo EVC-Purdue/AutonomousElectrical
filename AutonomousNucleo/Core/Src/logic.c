@@ -41,7 +41,8 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim) {
 void logic_init() {
     // Turn off LED initially
     HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
-    // TODO: set contactor pin low
+    // Set contactor pin low
+    HAL_GPIO_WritePin(CONTACTOR_GPIO_Port, CONTACTOR_Pin, GPIO_PIN_RESET);
 }
 
 // logic_run() ---------------------------------------------------------------//
@@ -53,7 +54,7 @@ void logic_run(SPI_HandleTypeDef* hspi2, // Rubik Pi 3 <-> STM32 SPI handle
     HAL_StatusTypeDef spi_stat =
         HAL_SPI_TransmitReceive(hspi2, gs_tx_buff, gs_rx_buff, SPI_MSG_SIZE, SPI_TIMEOUT_MS);
 
-    bool spi_okay = (spi_stat == HAL_OK);
+    bool spi_okay     = (spi_stat == HAL_OK);
     bool contactor_on = (gs_tim5_pulse_width_us >= ESTOP_PULSE_WIDTH);
 
     // Set LED state
@@ -67,7 +68,9 @@ void logic_run(SPI_HandleTypeDef* hspi2, // Rubik Pi 3 <-> STM32 SPI handle
     }
 
     // Set contactor state
-    // TODO
+    HAL_GPIO_WritePin(CONTACTOR_GPIO_Port,
+        CONTACTOR_Pin,
+        contactor_on ? GPIO_PIN_SET : GPIO_PIN_RESET);
 
     if (spi_okay) {
         // Process received data
