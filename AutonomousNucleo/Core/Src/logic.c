@@ -58,13 +58,16 @@ void logic_run(SPI_HandleTypeDef* hspi2, // Rubik Pi 3 <-> STM32 SPI handle
     bool contactor_on = (gs_tim5_pulse_width_us >= ESTOP_PULSE_WIDTH);
 
     // Set LED state
-    if (spi_okay) {
+    if (spi_okay && contactor_on) {
         // Loop rate is bound/delayed by blocking SPI call
-        // Toggle basically on SPI message
+        // Toggle basically on SPI message if all is good
         HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
-    } else {
-        // Solid green to show ON but no SPI
+    } if (spi_okay) {
+        // Solid green to show SPI is RXing but contactor is off
         HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
+    } else {
+        // No SPI and maybe no contactor
+        HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
     }
 
     // Set contactor state
