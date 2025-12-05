@@ -9,7 +9,7 @@
 #include "stm32f4xx_hal.h"
 
 // Kart control --------------------------------------------------------------//
-static bool gs_contactor_on                   = false;
+static volatile bool gs_contactor_on                   = false;
 static volatile uint32_t gs_contactor_last_rx = 0;
 
 // SPI communication ---------------------------------------------------------//
