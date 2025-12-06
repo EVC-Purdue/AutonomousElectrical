@@ -31,11 +31,22 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim) {
         } else { // waiting for falling edge
             uint32_t ic_falling = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
             // Handle counter rollover
-            uint32_t pulse_width_us;
-            if (ic_falling >= gs_tim5_ic_rising) {
-                pulse_width_us = ic_falling - gs_tim5_ic_rising;
+            // uint32_t pulse_width_us;
+            // if (ic_falling >= gs_tim5_ic_rising) {
+            //     pulse_width_us = ic_falling - gs_tim5_ic_rising;
+            // } else {
+            //     pulse_width_us = (0xFFFFFFFF - gs_tim5_ic_rising) + ic_falling + 1;
+            // }
+            uint32_t pulse_width_us = ic_falling - gs_tim5_ic_rising;
+
+            if (pulse_width_us > 500 && pulse_width_us < 2500) {
+                HAL_GPIO_WritePin(LD2_GPIO_Port,
+                    LD2_Pin,
+                    GPIO_PIN_SET);
             } else {
-                pulse_width_us = (0xFFFFFFFF - gs_tim5_ic_rising) + ic_falling + 1;
+                HAL_GPIO_WritePin(LD2_GPIO_Port,
+                    LD2_Pin,
+                    GPIO_PIN_RESET);
             }
 
             // If the contactor switch state has changed, update GPIO
@@ -46,9 +57,9 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim) {
                 HAL_GPIO_WritePin(CONTACTOR_GPIO_Port,
                     CONTACTOR_Pin,
                     gs_contactor_on ? GPIO_PIN_SET : GPIO_PIN_RESET);
-                HAL_GPIO_WritePin(LD2_GPIO_Port,
-                    LD2_Pin,
-                    gs_contactor_on ? GPIO_PIN_SET : GPIO_PIN_RESET);
+                // HAL_GPIO_WritePin(LD2_GPIO_Port,
+                //     LD2_Pin,
+                //     gs_contactor_on ? GPIO_PIN_SET : GPIO_PIN_RESET);
             }
 
             // Switch back to capture rising edge
