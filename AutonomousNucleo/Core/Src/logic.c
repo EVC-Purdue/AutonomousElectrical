@@ -9,53 +9,54 @@
 #include "stm32f4xx_hal.h"
 
 // Kart control --------------------------------------------------------------//
-static volatile bool gs_contactor_on          = false;
-static volatile uint32_t gs_contactor_last_rx = 0;
+static bool gs_contactor_on          = false;
+// static volatile uint32_t gs_contactor_last_rx = 0;
+static uint32_t gs_boot_time = 0;
 
 // SPI communication ---------------------------------------------------------//
 static uint8_t gs_rx_buff[SPI_MSG_SIZE] = {0};
 static uint8_t gs_tx_buff[SPI_MSG_SIZE] = {0};
 
 // RC E-stop PWM interrupt ---------------------------------------------------//
-static volatile uint32_t gs_tim5_ic_rising = 0;
-static volatile bool gs_tim5_capturing     = false;
+// static volatile uint32_t gs_tim5_ic_rising = 0;
+// static volatile bool gs_tim5_capturing     = false;
 
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim) {
-    if ((htim->Instance == TIM5) && (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1)) {
-        if (!gs_tim5_capturing) { // waiting for rising edge
-            gs_tim5_ic_rising = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
+    // if ((htim->Instance == TIM5) && (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1)) {
+    //     if (!gs_tim5_capturing) { // waiting for rising edge
+    //         gs_tim5_ic_rising = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
 
-            // Switch to capture falling edge
-            __HAL_TIM_SET_CAPTUREPOLARITY(htim, TIM_CHANNEL_1, TIM_INPUTCHANNELPOLARITY_FALLING);
-            gs_tim5_capturing = true;
-        } else { // waiting for falling edge
-            uint32_t ic_falling = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
-            // Handle counter rollover
-            uint32_t pulse_width_us;
-            if (ic_falling >= gs_tim5_ic_rising) {
-                pulse_width_us = ic_falling - gs_tim5_ic_rising;
-            } else {
-                pulse_width_us = (0xFFFFFFFF - gs_tim5_ic_rising) + ic_falling + 1;
-            }
+    //         // Switch to capture falling edge
+    //         __HAL_TIM_SET_CAPTUREPOLARITY(htim, TIM_CHANNEL_1, TIM_INPUTCHANNELPOLARITY_FALLING);
+    //         gs_tim5_capturing = true;
+    //     } else { // waiting for falling edge
+    //         uint32_t ic_falling = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
+    //         // Handle counter rollover
+    //         uint32_t pulse_width_us;
+    //         if (ic_falling >= gs_tim5_ic_rising) {
+    //             pulse_width_us = ic_falling - gs_tim5_ic_rising;
+    //         } else {
+    //             pulse_width_us = (0xFFFFFFFF - gs_tim5_ic_rising) + ic_falling + 1;
+    //         }
 
-            // If the contactor switch state has changed, update GPIO
-            // Don't update it every time to avoid unnecessary writes
-            bool new_contactor_on = (pulse_width_us >= ESTOP_PULSE_WIDTH);
-            if (new_contactor_on != gs_contactor_on) {
-                gs_contactor_on = new_contactor_on;
-                HAL_GPIO_WritePin(CONTACTOR_GPIO_Port,
-                    CONTACTOR_Pin,
-                    gs_contactor_on ? GPIO_PIN_SET : GPIO_PIN_RESET);
-            }
+    //         // If the contactor switch state has changed, update GPIO
+    //         // Don't update it every time to avoid unnecessary writes
+    //         bool new_contactor_on = (pulse_width_us >= ESTOP_PULSE_WIDTH);
+    //         if (new_contactor_on != gs_contactor_on) {
+    //             gs_contactor_on = new_contactor_on;
+    //             HAL_GPIO_WritePin(CONTACTOR_GPIO_Port,
+    //                 CONTACTOR_Pin,
+    //                 gs_contactor_on ? GPIO_PIN_SET : GPIO_PIN_RESET);
+    //         }
 
-            // Switch back to capture rising edge
-            __HAL_TIM_SET_CAPTUREPOLARITY(htim, TIM_CHANNEL_1, TIM_INPUTCHANNELPOLARITY_RISING);
-            gs_tim5_capturing = false;
+    //         // Switch back to capture rising edge
+    //         __HAL_TIM_SET_CAPTUREPOLARITY(htim, TIM_CHANNEL_1, TIM_INPUTCHANNELPOLARITY_RISING);
+    //         gs_tim5_capturing = false;
 
-            // Update last rx time
-            gs_contactor_last_rx = HAL_GetTick();
-        }
-    }
+    //         // Update last rx time
+    //         gs_contactor_last_rx = HAL_GetTick();
+    //     }
+    // }
 }
 
 // logic_init() --------------------------------------------------------------//
@@ -64,8 +65,9 @@ void logic_init() {
     HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
     // Set contactor pin low
     HAL_GPIO_WritePin(CONTACTOR_GPIO_Port, CONTACTOR_Pin, GPIO_PIN_RESET);
+    gs_boot_time = HAL_GetTick();
     // Initialize last E-stop pulse timestamp to current tick
-    gs_contactor_last_rx = HAL_GetTick();
+    // gs_contactor_last_rx = HAL_GetTick();
 }
 
 // logic_run() ---------------------------------------------------------------//
@@ -80,16 +82,28 @@ void logic_run(SPI_HandleTypeDef* hspi2, // Rubik Pi 3 <-> STM32 SPI handle
     bool spi_okay = (spi_stat == HAL_OK);
 
     // Read contactor state in a critical section
-    __disable_irq();
-    bool contactor_on_local = gs_contactor_on;
-    __enable_irq();
+    // __disable_irq();
+    // bool contactor_on_local = gs_contactor_on;
+    // __enable_irq();
+
+    uint32_t now_ms = HAL_GetTick();
+    if (now_ms - gs_boot_time < 2000) {
+        // During first 2s after boot, force contactor off
+        gs_contactor_on = false;
+    } else {
+        gs_contactor_on = true;
+    }
+
+    HAL_GPIO_WritePin(CONTACTOR_GPIO_Port,
+        CONTACTOR_Pin,
+        gs_contactor_on ? GPIO_PIN_SET : GPIO_PIN_RESET);
 
     // Set LED state
-    if (contactor_on_local && spi_okay) {
+    if (gs_contactor_on && spi_okay) {
         // Loop rate is bound/delayed by blocking SPI call
         // Toggle basically on SPI message if all is good
         HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
-    } else if (contactor_on_local) {
+    } else if (gs_contactor_on) {
         // Solid green to show contactor is on but SPI error
         HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
     } else {
@@ -97,22 +111,7 @@ void logic_run(SPI_HandleTypeDef* hspi2, // Rubik Pi 3 <-> STM32 SPI handle
         HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
     }
 
-    // If no valid E-stop pulse recently, open contactor
-    uint32_t now_ms = HAL_GetTick();
-    // Disable interrupts to prevent race condition with ISR
-    __disable_irq();
-    if ((now_ms - gs_contactor_last_rx) > ESTOP_TIMEOUT_MS) {
-        gs_contactor_on    = false;
-        contactor_on_local = false;
-        gs_tim5_capturing  = false; // reset capturing state
-    }
-    // Always set contactor GPIO based on current state for consistency
-    HAL_GPIO_WritePin(CONTACTOR_GPIO_Port,
-        CONTACTOR_Pin,
-        gs_contactor_on ? GPIO_PIN_SET : GPIO_PIN_RESET);
-    __enable_irq();
-
-    if (spi_okay && contactor_on_local) {
+    if (spi_okay && gs_contactor_on) {
         // Process received data
         // 0-(2^16-1) = 0-100% speed = 1000-2000 PWM pulse
         uint16_t motor_unscaled = ((uint16_t)gs_rx_buff[0] << 8) | (uint16_t)gs_rx_buff[1];
@@ -128,7 +127,9 @@ void logic_run(SPI_HandleTypeDef* hspi2, // Rubik Pi 3 <-> STM32 SPI handle
 
         // Set steering servo PWM
         uint32_t steering_pwm = steering_unscaled_to_pwm(steering_unscaled);
-        __HAL_TIM_SET_COMPARE(htim3_steering, TIM_CHANNEL_1, steering_pwm);
+        // __HAL_TIM_SET_COMPARE(htim3_steering, TIM_CHANNEL_1, steering_pwm);
+        // NO STEERINT TODAY :(
+        __HAL_TIM_SET_COMPARE(htim3_steering, TIM_CHANNEL_1, 1500);
         // Set rx buffer with pwm value for confirmation
         gs_tx_buff[2] = (steering_pwm >> 8) & 0xFF;
         gs_tx_buff[3] = steering_pwm & 0xFF;
