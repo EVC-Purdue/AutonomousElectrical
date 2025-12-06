@@ -66,6 +66,10 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim) {
             __HAL_TIM_SET_CAPTUREPOLARITY(htim, TIM_CHANNEL_1, TIM_INPUTCHANNELPOLARITY_RISING);
             gs_tim5_capturing = false;
 
+            volatile uint32_t debug_rising = gs_tim5_ic_rising;
+            volatile uint32_t debug_falling = ic_falling;
+            volatile uint32_t debug_pulse = pulse_width_us;
+
             // Update last rx time
 //            gs_contactor_last_rx = HAL_GetTick();
         }
