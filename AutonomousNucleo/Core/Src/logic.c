@@ -71,10 +71,38 @@ void logic_init() {
 }
 
 // logic_run() ---------------------------------------------------------------//
+// uint16_t pwm_values[]    = {1000, 1200};
+// const size_t pwm_values_len = 2;
+// uint8_t pwm_values_idx   = 0;
+// uint8_t b1_last_state    = 0;
+// uint32_t last_press_tick = 0;
+
+uint32_t last_motor_pwm = MOTOR_PWM_PULSE_MIN;
+
 void logic_run(SPI_HandleTypeDef* hspi2, // Rubik Pi 3 <-> STM32 SPI handle
     TIM_HandleTypeDef* htim2_motor,      // Motor PWM TIM handle
     TIM_HandleTypeDef* htim3_steering    // Steering servo PWM TIM handle
 ) {
+    // uint8_t button_state = HAL_GPIO_ReadPin(B1_GPIO_Port, B1_Pin);
+
+    // uint32_t now = HAL_GetTick();
+    // if (button_state == GPIO_PIN_SET && b1_last_state == GPIO_PIN_RESET) {
+    //     if (now - last_press_tick > 200) // debounce
+    //     {
+    //         pwm_values_idx = (pwm_values_idx + 1) % pwm_values_len;
+
+    //         __HAL_TIM_SET_COMPARE(htim2_motor, TIM_CHANNEL_1, pwm_values[pwm_values_idx]);
+    //         HAL_GPIO_WritePin(LD2_GPIO_Port,
+    //                             LD2_Pin,
+    //                             pwm_values_idx == 0 ? GPIO_PIN_SET : GPIO_PIN_RESET);
+
+    //         last_press_tick = now;
+    //     }
+    // }
+
+    // b1_last_state = button_state;
+
+
     // SPI communication
     HAL_StatusTypeDef spi_stat =
         HAL_SPI_TransmitReceive(hspi2, gs_tx_buff, gs_rx_buff, SPI_MSG_SIZE, SPI_TIMEOUT_MS);
@@ -94,6 +122,9 @@ void logic_run(SPI_HandleTypeDef* hspi2, // Rubik Pi 3 <-> STM32 SPI handle
         gs_contactor_on = true;
     }
 
+    // HAL_GPIO_WritePin(LD2_GPIO_Port,
+    //     LD2_Pin,
+    //     gs_contactor_on ? GPIO_PIN_SET : GPIO_PIN_RESET);
     HAL_GPIO_WritePin(CONTACTOR_GPIO_Port,
         CONTACTOR_Pin,
         gs_contactor_on ? GPIO_PIN_SET : GPIO_PIN_RESET);
@@ -120,6 +151,16 @@ void logic_run(SPI_HandleTypeDef* hspi2, // Rubik Pi 3 <-> STM32 SPI handle
 
         // Set motor PWM
         uint32_t motor_pwm = motor_unscaled_to_pwm(motor_unscaled);
+
+        // No REGEN RN
+        uint32_t allowed_min = last_motor_pwm - 20;
+        if (allowed_min < MOTOR_PWM_PULSE_MIN) {
+            allowed_min = MOTOR_PWM_PULSE_MIN;
+        }
+        if (motor_pwm < allowed_min) {
+            motor_pwm = allowed_min;
+        }
+        last_motor_pwm = motor_pwm;
         __HAL_TIM_SET_COMPARE(htim2_motor, TIM_CHANNEL_1, motor_pwm);
         // Set rx buffer with pwm value for confirmation
         gs_tx_buff[0] = (motor_pwm >> 8) & 0xFF;
@@ -135,7 +176,8 @@ void logic_run(SPI_HandleTypeDef* hspi2, // Rubik Pi 3 <-> STM32 SPI handle
         gs_tx_buff[3] = steering_pwm & 0xFF;
     } else {
         // Attempt to stop the vehicle on SPI error
-        __HAL_TIM_SET_COMPARE(htim2_motor, TIM_CHANNEL_1, MOTOR_PWM_PULSE_MIN);
+        // No force stop on b/c no REGEN
+        // __HAL_TIM_SET_COMPARE(htim2_motor, TIM_CHANNEL_1, MOTOR_PWM_PULSE_MIN);
 
         // Set tx buffer to 0xFF (never possible to achieve normally) on SPI error
         for (size_t i = 0; i < SPI_MSG_SIZE; i++) {
