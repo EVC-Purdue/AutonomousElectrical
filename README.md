@@ -2,7 +2,44 @@
 
 Autonomous Project electrical stack code
 
-## Pins
+## Autonomous DistroBoard Pin Definitions 
+
+- **CAN Bus (CAN2):**
+    - RX: `PB5`
+    - TX: `PB6`
+    - **CAN_S (Silent):** `PB7` 
+		- *LOW to enable transmitter*
+		- *HIGH to disable transmitter*
+
+- **VESC COMMS (UART5):**
+	- RX: `PD2` 
+    - TX: `PC12`
+	
+- **RC Reciever (USART3)**
+	- RX: `PB11` 
+    - TX: `PB10`
+
+- **USB (Bootloader):**
+    - DM: `PA11`
+    - DP: `PA12`
+	
+- **STEERING OUT (PWM):**
+    - TIM1 (CH1/CH1N): `PE9`
+
+- **THROTTLE OUT (PWM):**
+    - TIM11 (CH1): `PB9`
+
+- **GPIOs:**
+    - Main Coil EN: `PE5`
+    - Precharge EN: `PE6`
+	- LED OUT: `PE8`
+
+- **System / Debug:**
+    - SWDIO: `PA13`
+    - SWCLK: `PA14`
+    - OSC_IN/OUT: `PH0` / `PH1` (8MHz HSE)
+
+## Autonomous Nucelo Pin Definitions 
 
 - Rubik Pi 3 <-> nucleo-f446re: `SPI2`
 	- SCK: `PB10`
