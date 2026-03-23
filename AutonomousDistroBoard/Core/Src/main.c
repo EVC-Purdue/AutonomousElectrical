@@ -52,7 +52,7 @@ DMA_HandleTypeDef hdma_usart3_rx;
 PCD_HandleTypeDef hpcd_USB_OTG_FS;
 
 /* USER CODE BEGIN PV */
-
+ibus_t g_ibus = {0};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -114,7 +114,8 @@ int main(void)
   HAL_TIM_PWM_Start(&htim11, TIM_CHANNEL_1);
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
 
-  HAL_UART_Receive_DMA(&huart3, g_ibus_dma_buffer, IBUS_DMA_BUFFER_SIZE);
+  ibus_init(&g_ibus);
+  HAL_UART_Receive_DMA(&huart3, g_ibus.dma_buffer, IBUS_DMA_BUFFER_SIZE);
 
   /* USER CODE END 2 */
 
@@ -125,6 +126,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+    ibus_process(&g_ibus, &huart3);
   }
   /* USER CODE END 3 */
 }
