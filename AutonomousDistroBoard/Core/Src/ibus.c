@@ -4,9 +4,6 @@
 #include <string.h>
 
 
-ibus_t g_ibus = {0};
-
-
 void ibus_init(ibus_t *ibus) {
     memset(ibus, 0, sizeof(*ibus));
 }
