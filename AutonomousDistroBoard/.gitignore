@@ -1,5 +1,6 @@
 Debug/
 Release/
 .settings/
+.cache/
 .metadata/
 .DS_Store
