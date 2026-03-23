@@ -2,7 +2,7 @@
 
 Autonomous Project electrical stack code
 
-## Autonomous DistroBoard Pin Definitions 
+## Autonomous Control/Distro Board Pin Definitions 
 
 - **CAN Bus (CAN2):**
     - RX: `PB5`
@@ -30,6 +30,7 @@ Autonomous Project electrical stack code
     - TIM11 (CH1): `PB9`
 
 - **GPIOs:**
+    - CAN_S: `PB7` 
     - Main Coil EN: `PE5`
     - Precharge EN: `PE6`
 	- LED OUT: `PE8`
