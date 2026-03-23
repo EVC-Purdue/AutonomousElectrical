@@ -2,7 +2,9 @@
 
 Autonomous Project electrical stack code
 
-## Autonomous Control/Distro Board Pin Definitions 
+## Autonomous Control/Distro Board
+
+### Pin Definitions 
 
 - **CAN Bus (CAN2):**
     - RX: `PB5`
@@ -40,7 +42,25 @@ Autonomous Project electrical stack code
     - SWCLK: `PA14`
     - OSC_IN/OUT: `PH0` / `PH1` (8MHz HSE)
 
-## Autonomous Nucelo Pin Definitions 
+### CAN messages
+
+- ID = `0x100` - **Control commands** (RX)
+	- Byte 0-1: throttle (uint16_t, little endian)
+	- Byte 2-3: steering (uint16_t, little endian)
+	- Byte 4-7: reserved / future use
+- ID = `0x101` - **Status update** (TX)
+	- Byte 0: precharge + contactor + rc mode (bit flags)
+		- Bit0 = precharge
+		- Bit1 = contactor
+		- Bit2 = RC mode
+		- Bits3-7 = 0
+	- Byte 1-2: throttle PWM (uint16_t, little endian)
+	- Byte 3-4: steering PWM (uint16_t, little endian)
+	- Byte 5-7: reserved / future use
+
+## Autonomous Nucelo
+
+### Pin Definitions 
 
 - Rubik Pi 3 <-> nucleo-f446re: `SPI2`
 	- SCK: `PB10`
