@@ -14,6 +14,10 @@ void logic_handle_control(const can_control_msg_t* cmd) {
 	if (g_logic_state_ptr == NULL) {
 		return;
 	}
+
+	g_logic_state_ptr->can_current_throttle = cmd->throttle;
+	g_logic_state_ptr->can_current_steering = cmd->steering;
+	g_logic_state_ptr->last_control_timestamp = HAL_GetTick();
 }
 
 void logic_run(

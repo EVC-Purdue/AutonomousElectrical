@@ -10,6 +10,7 @@
 #define CAN_BUS (CAN2)
 
 #define CAN_TX_PERIOD (10) // ms
+#define CAN_RX_TIMEOUT (50) // ms
 
 // - ID = `0x100` - **Control commands** (RX)
 // 	- Byte 0-1: throttle (uint16_t, little endian), 0-1000, where 1000 = full throttle
