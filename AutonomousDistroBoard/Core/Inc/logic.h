@@ -7,6 +7,7 @@
 #include "stm32f4xx_hal.h"
 
 #include "ibus.h"
+#include "can.h"
 
 typedef struct {
 	ibus_t ibus;
@@ -22,6 +23,11 @@ void logic_run(
 	UART_HandleTypeDef *sbus_huart,
 	CAN_HandleTypeDef *hcan
 );
+
+// Called from CAN RX callback when a control message is received
+// Uses the global static pointer to the logic state, since the CAN callback
+// doesn't have a way to pass user data
+void logic_handle_control(const can_control_msg_t* cmd);
 
 
 

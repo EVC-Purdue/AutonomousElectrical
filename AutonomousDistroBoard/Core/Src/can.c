@@ -2,20 +2,21 @@
 
 #include "stm32f4xx_hal.h"
 
+#include "logic.h"
 
-uint8_t rx_data[8];
 
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
     if (hcan->Instance == CAN_BUS)
     {
 		CAN_RxHeaderTypeDef rx_header;
+		uint8_t rx_data[8];
         HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &rx_header, rx_data);
 
 		if (rx_header.StdId == CAN_ID_CONTROL)
 		{
 			can_control_msg_t cmd = parse_can_control(rx_data);
-			// logic_handle_control(&cmd);
+			logic_handle_control(&cmd);
 		}
     }
 }
