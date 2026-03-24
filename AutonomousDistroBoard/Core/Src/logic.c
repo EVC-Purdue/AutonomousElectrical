@@ -59,56 +59,67 @@ void logic_run(
 		// Note: if it was high and remains high, we want to continue to update estop_triggered_time
 		// so the ESTOP_TRIGGERED_DELAY doesn't start until the remote estop goes low again
 
+		// These should be set when LOGIC_MODE_ESTOPPED, but just for safety, set them here...
 		HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_RESET);
 		HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_RESET);
 	}
 
-	// Boot state machine logic
+	// Precharge/contactor state machine logic
 	switch (state->mode) {
-		case LOGIC_MODE_STARTING:
+		case LOGIC_MODE_STARTING: {
+			// Precharge and contactor low
+			HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_RESET);
+
 			if (now >= state->boot_time + PRECHARGE_START_DELAY) {
 				state->mode = LOGIC_MODE_PRECHARGING;
-				// Start precharge: Precharge EN goes high
-				HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_SET);
 			}
 			break;
+		}
+		case LOGIC_MODE_PRECHARGING: {
+			// Precharge on, contactor off
+			HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_SET);
+			HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_RESET);
 
-		case LOGIC_MODE_PRECHARGING:
 			if (now >= state->boot_time + PRECHARGE_START_DELAY + PRECHARGE_DURATION) {
 				state->mode = LOGIC_MODE_CONTACTOR_CLOSING;
-				// Close contactor: Main Coil EN goes high
-				HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_SET);
 			}
 			break;
+		}
+		case LOGIC_MODE_CONTACTOR_CLOSING: {
+			// Precharge on, contactor on
+			HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_SET);
+			HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_SET);
 
-		case LOGIC_MODE_CONTACTOR_CLOSING:
 			if (now >= state->boot_time + PRECHARGE_START_DELAY + PRECHARGE_DURATION + CONTACTOR_CLOSED_DELAY) {
 				state->mode = LOGIC_MODE_RUNNING;
-				// Contactor closed = precharge complete, Precharge EN can go low
-				HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_RESET);
 			}
 			break;
+		}
+		case LOGIC_MODE_RUNNING: {
+			// Precharge off, contactor on
+			HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_SET);
 
-		case LOGIC_MODE_RUNNING:
-			// Normal operation, nothing to do here for now
+			// Normal operation!
 			break;
-		case LOGIC_MODE_ESTOPPED:
-			// For safety, force set main coil and precharge off
+		}
+		case LOGIC_MODE_ESTOPPED: {
+			// STOP: precharge off, contactor off
 			HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_RESET);
 			HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_RESET);
 
 			if (option_u32_is_some(state->estop_triggered_time)
 				&& (now >= option_u32_unwrap(state->estop_triggered_time) + ESTOP_TRIGGERED_DELAY)) {
 				// After waiting for ESTOP_TRIGGERED_DELAY, restart precharge sequence
-				state->mode = LOGIC_MODE_STARTING;
 				state->estop_triggered_time = option_u32_none(); // reset estop triggered time
-				// Reset to booting state (both precharge and main coil off),
-				// then the logic will set precharge on in the next step of the state machine
-				HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_RESET);
-				HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_RESET);
+				state->mode = LOGIC_MODE_STARTING;
 			}
 			break;
+		}
 	}
+
+	// REST OF LOGIC
 
 	// Periodically send CAN status messages
 	if (now - state->last_can_tx_time >= CAN_TX_PERIOD) {
@@ -122,5 +133,4 @@ void logic_run(
 		send_can_status(&status, hcan);
 		state->last_can_tx_time = now;
 	}
-	// REST OF LOGIC
 }
