@@ -2,8 +2,10 @@
 
 #include <stdint.h>
 
+#include "ibus.h"
 #include "main.h"
 #include "can.h"
+#include "util.h"
 
 
 static logic_state_t* g_logic_state_ptr = NULL;
@@ -12,9 +14,9 @@ static logic_state_t* g_logic_state_ptr = NULL;
 void logic_init(logic_state_t* state) {
 	state->mode = LOGIC_MODE_STARTING;
 	state->boot_time = HAL_GetTick();
-	state->estop_triggered_time = UINT32_MAX; // not currently triggered
+	state->estop_triggered_time = option_u32_none(); // not currently triggered
 
-    state->estop_above_threshold_start_time = UINT32_MAX; // not currently above threshold
+    state->estop_above_threshold_start_time = option_u32_none(); // not currently above threshold
 
 	ibus_init(&state->ibus);
 	state->last_can_tx_time = 0;
@@ -45,12 +47,12 @@ void logic_run(
 	// Check for remote ESTOP trigger
 	uint16_t estop_channel_value = state->ibus.channels[IBUS_CHANNEL_ESTOP];
 	if (estop_channel_value >= IBUS_ESTOP_THRESHOLD) {
-		if (state->estop_above_threshold_start_time == UINT32_MAX) {
+		if (option_u32_is_none(state->estop_above_threshold_start_time)) {
 			// Just observed ESTOP channel go above threshold, start debounce timer
-			state->estop_above_threshold_start_time = HAL_GetTick();
-		} else if (now - state->estop_above_threshold_start_time >= IBUS_ESTOP_DEBOUNCE_TIME) {
+			state->estop_above_threshold_start_time = option_u32_some(now);
+		} else if (now - option_u32_unwrap(state->estop_above_threshold_start_time) >= IBUS_ESTOP_RISING_DEBOUNCE_TIME) {
 			// ESTOP channel has been above threshold for long enough, consider remote ESTOP triggered
-			state->estop_triggered_time = HAL_GetTick();
+			state->estop_triggered_time = option_u32_some(now);
 			state->mode = LOGIC_MODE_ESTOPPED;
 
 			HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_RESET);
@@ -58,7 +60,7 @@ void logic_run(
 		}
 	} else {
 		// ESTOP channel is below threshold, reset debounce timer
-		state->estop_above_threshold_start_time = UINT32_MAX;
+		state->estop_above_threshold_start_time = option_u32_none();
 	}
 
 	// Boot state machine logic
@@ -95,12 +97,11 @@ void logic_run(
 			HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_RESET);
 			HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_RESET);
 
-			if ((state->estop_triggered_time != UINT32_MAX)
-				&& (now >= state->estop_triggered_time + ESTOP_TRIGGERED_DELAY)) {
+			if (option_u32_is_some(state->estop_triggered_time)
+				&& (now >= option_u32_unwrap(state->estop_triggered_time) + ESTOP_TRIGGERED_DELAY)) {
 				// After waiting for ESTOP_TRIGGERED_DELAY, restart precharge sequence
 				state->mode = LOGIC_MODE_STARTING;
-				state->estop_triggered_time = UINT32_MAX; // reset estop triggered time
-
+				state->estop_triggered_time = option_u32_none(); // reset estop triggered time
 				// Reset to booting state (both precharge and main coil off),
 				// then the logic will set precharge on in the next step of the state machine
 				HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_RESET);

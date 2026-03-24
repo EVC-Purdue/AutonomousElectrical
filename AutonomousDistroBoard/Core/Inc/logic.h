@@ -8,6 +8,7 @@
 
 #include "ibus.h"
 #include "can.h"
+#include "util.h"
 
 
 #define PRECHARGE_START_DELAY (200) // ms, wait from boot before starting precharge
@@ -37,8 +38,8 @@ typedef struct {
 	uint32_t last_can_tx_time;
 
 	uint32_t boot_time; // HAL_GetTick() timestamp of when the system initialized
-	uint32_t estop_above_threshold_start_time; // HAL_GetTick() timestamp of when the ESTOP channel was first observed to go above the threshold, or UINT32_MAX if currently below the threshold
-	uint32_t estop_triggered_time; // HAL_GetTick() timestamp of when the remote estop was triggered or UINT32_MAX if not currently triggered
+	option_u32_t estop_above_threshold_start_time; // HAL_GetTick() timestamp of when the ESTOP channel was first observed to go above the threshold, or none if currently below the threshold
+	option_u32_t estop_triggered_time; // HAL_GetTick() timestamp of when the remote estop was triggered or none if it is not currently triggered
 
 	volatile uint16_t can_current_throttle; // 0-1000
 	volatile uint16_t can_current_steering; // 0-1000
