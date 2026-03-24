@@ -15,12 +15,20 @@ void logic_init(logic_state_t* state) {
 	state->mode = LOGIC_MODE_STARTING;
 	state->boot_time = HAL_GetTick();
 	state->estop_triggered_time = option_u32_none(); // not currently triggered
+	
 	debounce_controller_init(
 		&state->estop_debounce,
 		false,
 		ESTOP_RISING_DEBOUNCE,
 		ESTOP_FALLING_DEBOUNCE,
 		ESTOP_ACCUMULATING_DEBOUNCE
+	);
+	debounce_controller_init(
+		&state->mode_debounce,
+		false,
+		MODE_DEBOUNCE_MS,
+		MODE_DEBOUNCE_MS,
+		MODE_ACCUMULATING_DEBOUNCE_MS
 	);
 
 	ibus_init(&state->ibus);
@@ -49,12 +57,12 @@ void logic_run(
 
 	uint32_t now = HAL_GetTick();
 
-	// Check for RC connection timeout
+	// All states: Check for RC connection timeout
 	if (!ibus_is_connected(&state->ibus, now, RC_CONNECTION_TIMEOUT)) {
 		state->mode = LOGIC_MODE_RC_DISCONNECTED;
 	}
 
-	// Check for remote ESTOP trigger
+	// All states: Check for remote ESTOP trigger
 	if (ibus_is_connected(&state->ibus, now, RC_CONNECTION_TIMEOUT)) {
 		uint16_t estop_channel_value = state->ibus.channels[IBUS_CHANNEL_ESTOP];
 		bool estop_raw_high = estop_channel_value >= ESTOP_PWM_THRESHOLD;
@@ -66,6 +74,8 @@ void logic_run(
 			// so the ESTOP_TRIGGERED_DELAY doesn't start until the remote estop goes low again
 		}
 	}
+
+	// TODO: output pwm for throttle and steering
 
 	// Precharge/contactor state machine logic
 	switch (state->mode) {
@@ -99,14 +109,24 @@ void logic_run(
 			}
 			break;
 		}
-		case LOGIC_MODE_RUNNING: {
+		case LOGIC_MODE_RUNNING: { //-------------------------------------------------//
 			// Precharge off, contactor on
 			HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_RESET);
 			HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_SET);
 
 			// Normal operation!
+
+			// MODE switching logic
+			// Note: don't need to check for iBUS connection here because if we lost connection
+			// we would have already switched to RC_DISCONNECTED mode
+			uint16_t mode_channel_value = state->ibus.channels[IBUS_CHANNEL_MODE];
+			bool mode_raw_high = mode_channel_value >= MODE_PWM_THRESHOLD;
+			debounce_controller_update(&state->mode_debounce, mode_raw_high, now);
+
+			bool autonomous_mode = debounce_controller_get_state(&state->mode_debounce);
+
 			break;
-		}
+		} //--------------------------------------------------------------------------//
 		case LOGIC_MODE_ESTOPPED: {
 			// STOP: precharge off, contactor off
 			HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_RESET);

@@ -23,8 +23,12 @@
 
 #define ESTOP_PWM_THRESHOLD         (1500) // if the ESTOP channel goes above this value, consider the remote estop to be triggered
 #define ESTOP_RISING_DEBOUNCE       (300) // ms, require the ESTOP channel to be above the threshold for at least this long before considering the remote estop to be triggered
-#define ESTOP_ACCUMULATING_DEBOUNCE (30) // ms, when the rising estop is debouncing/accumulating, require the ESTOP channel to be below the threshold for at least this long before resetting the debounce timer
+#define ESTOP_ACCUMULATING_DEBOUNCE (30) // ms, when the rising ESTOP is debouncing/accumulating, require the ESTOP channel to be below the threshold for at least this long before resetting the debounce timer
 #define ESTOP_FALLING_DEBOUNCE      (50) // ms, require the ESTOP channel to be below the threshold for at least this long before considering the remote estop to be no longer triggered
+
+#define MODE_PWM_THRESHOLD (1500) // if the MODE channel is above this value, consider it to be in autonomous mode, otherwise RC mode
+#define MODE_DEBOUNCE_MS (500) // ms, require the MODE channel to be consistently above or below the threshold for at least this long before switching modes
+#define MODE_ACCUMULATING_DEBOUNCE_MS (50) // ms, when the rising MODE is debouncing/accumulating, require the MODE channel to be below the threshold for at least this long before resetting the debounce timer
 
 #define CAN_TX_PERIOD  (10) // ms
 // #define CAN_RX_TIMEOUT (50) // ms
@@ -48,9 +52,13 @@ typedef struct {
 	ibus_t ibus;
 	uint32_t last_can_tx_time;
 
+	// TODO: boot time should be start time and it needs to be reset when transition back to start state
 	uint32_t boot_time; // HAL_GetTick() timestamp of when the system initialized
+	
 	debounce_controller_t estop_debounce; // debounce controller for the remote estop channel
 	option_u32_t estop_triggered_time; // HAL_GetTick() timestamp of when the remote estop was triggered or none if it is not currently triggered
+
+	debounce_controller_t mode_debounce; // low = RC mode, high = autonomous mode
 
 	volatile uint16_t can_current_throttle; // 0-1000
 	volatile uint16_t can_current_steering; // 0-1000
