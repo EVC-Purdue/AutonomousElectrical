@@ -16,7 +16,7 @@
 #define ESTOP_TRIGGERED_DELAY (3000) // ms, after remote estop is triggered, how long to wait before restarting the precharge sequence
 
 typedef enum {
-	LOGIC_MODE_BOOTING = 0,
+	LOGIC_MODE_STARTING = 0,
 	LOGIC_MODE_PRECHARGING,
 	LOGIC_MODE_CONTACTOR_CLOSING,
 	LOGIC_MODE_RUNNING,

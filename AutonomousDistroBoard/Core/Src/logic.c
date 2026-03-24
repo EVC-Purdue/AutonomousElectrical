@@ -10,7 +10,7 @@ static logic_state_t* g_logic_state_ptr = NULL;
 
 
 void logic_init(logic_state_t* state) {
-	state->mode = LOGIC_MODE_BOOTING;
+	state->mode = LOGIC_MODE_STARTING;
 	state->boot_time = HAL_GetTick();
 	state->estop_triggered_time = UINT32_MAX; // not currently triggered
 
@@ -44,7 +44,7 @@ void logic_run(
 	// Boot state machine logic
 	uint32_t now = HAL_GetTick();
 	switch (state->mode) {
-		case LOGIC_MODE_BOOTING:
+		case LOGIC_MODE_STARTING:
 			if (now >= state->boot_time + PRECHARGE_START_DELAY) {
 				state->mode = LOGIC_MODE_PRECHARGING;
 				// Start precharge: Precharge EN goes high
@@ -79,7 +79,7 @@ void logic_run(
 			if ((state->estop_triggered_time != UINT32_MAX)
 				&& (now >= state->estop_triggered_time + ESTOP_TRIGGERED_DELAY)) {
 				// After waiting for ESTOP_TRIGGERED_DELAY, restart precharge sequence
-				state->mode = LOGIC_MODE_BOOTING;
+				state->mode = LOGIC_MODE_STARTING;
 				state->estop_triggered_time = UINT32_MAX; // reset estop triggered time
 
 				// Reset to booting state (both precharge and main coil off),
