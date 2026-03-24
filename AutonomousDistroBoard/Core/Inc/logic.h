@@ -15,6 +15,12 @@
 #define CONTACTOR_CLOSED_DELAY (100) // ms, how long to wait after contactor is requested to be closed before considering it fully closed
 #define ESTOP_TRIGGERED_DELAY (3000) // ms, after remote estop is triggered, how long to wait before restarting the precharge sequence
 
+#define IBUS_CHANNEL_THROTTLE (0) // 1000 = full stop, 2000 = full throttle forward
+#define IBUS_CHANNEL_STEERING (1) // 1000 = full left, 1500 = center, 2000 = full right
+#define IBUS_CHANNEL_MODE     (2) // ~1000 = RC mode, ~2000 = autonomous mode
+#define IBUS_CHANNEL_ESTOP    (3) // ~1000 = not pressed, ~2000 = estop
+
+
 typedef enum {
 	LOGIC_MODE_STARTING = 0,
 	LOGIC_MODE_PRECHARGING,
@@ -31,6 +37,7 @@ typedef struct {
 	uint32_t last_can_tx_time;
 
 	uint32_t boot_time; // HAL_GetTick() timestamp of when the system initialized
+	uint32_t estop_above_threshold_start_time; // HAL_GetTick() timestamp of when the ESTOP channel was first observed to go above the threshold, or UINT32_MAX if currently below the threshold
 	uint32_t estop_triggered_time; // HAL_GetTick() timestamp of when the remote estop was triggered or UINT32_MAX if not currently triggered
 
 	volatile uint16_t can_current_throttle; // 0-1000

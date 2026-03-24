@@ -14,6 +14,8 @@ void logic_init(logic_state_t* state) {
 	state->boot_time = HAL_GetTick();
 	state->estop_triggered_time = UINT32_MAX; // not currently triggered
 
+    state->estop_above_threshold_start_time = UINT32_MAX; // not currently above threshold
+
 	ibus_init(&state->ibus);
 	state->last_can_tx_time = 0;
 
@@ -38,11 +40,25 @@ void logic_run(
 	// Process iBUS data
 	ibus_process(&state->ibus, sbus_huart);
 
-	// TODO: Check for remote ESTOP trigger
-	// 500ms debounce!!
+	uint32_t now = HAL_GetTick();
+
+	// Check for remote ESTOP trigger
+	uint16_t estop_channel_value = state->ibus.channels[IBUS_CHANNEL_ESTOP];
+	if (estop_channel_value >= IBUS_ESTOP_THRESHOLD) {
+		if (state->estop_above_threshold_start_time == UINT32_MAX) {
+			// Just observed ESTOP channel go above threshold, start debounce timer
+			state->estop_above_threshold_start_time = HAL_GetTick();
+		} else if (now - state->estop_above_threshold_start_time >= IBUS_ESTOP_DEBOUNCE_TIME) {
+			// ESTOP channel has been above threshold for long enough, consider remote ESTOP triggered
+			state->estop_triggered_time = HAL_GetTick();
+			state->mode = LOGIC_MODE_ESTOPPED;
+		}
+	} else {
+		// ESTOP channel is below threshold, reset debounce timer
+		state->estop_above_threshold_start_time = UINT32_MAX;
+	}
 
 	// Boot state machine logic
-	uint32_t now = HAL_GetTick();
 	switch (state->mode) {
 		case LOGIC_MODE_STARTING:
 			if (now >= state->boot_time + PRECHARGE_START_DELAY) {
