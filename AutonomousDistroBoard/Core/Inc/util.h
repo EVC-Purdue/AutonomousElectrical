@@ -23,13 +23,17 @@ uint32_t option_u32_unwrap(option_u32_t opt); // only call if opt is known to be
 
 
 // Debounce controller -------------------------------------------------------//
+// Noise-tolerant debounce controller for boolean signals, with separate debounce
+// times for rising and falling edges and an optional accumulating debounce feature
+// to help filter out noise that causes multiple rapid transitions
 typedef struct {
-	bool stable_state;
-	option_u32_t transition_start_time;
-	option_u32_t interruption_start_time;
-	uint32_t rising_debounce_ms;
-	uint32_t falling_debounce_ms;
-	uint32_t accumulating_debounce_ms;
+	bool stable_state; // current accepted state
+	option_u32_t transition_start_time; // when a possible transition began
+	option_u32_t interruption_start_time; // when signal temporarily flipped back
+	uint32_t rising_debounce_ms; // configuration parameter: how long the signal needs to be continuously high before accepting a low->high transition
+	uint32_t falling_debounce_ms; // configuration parameter: how long the signal needs to be continuously low before accepting a high->low transition
+	uint32_t accumulating_debounce_ms; // configuration parameter: when a rising transition is in the debounce period, if the signal goes low again,
+	                                   // require it to be continuously low for this long before resetting the debounce timer (helps filter out noise that causes multiple rapid transitions)
 } debounce_controller_t;
 
 void debounce_controller_init(

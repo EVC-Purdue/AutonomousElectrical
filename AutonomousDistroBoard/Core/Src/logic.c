@@ -56,6 +56,8 @@ void logic_run(
 	if (estop_debounced_high) {
 		state->estop_triggered_time = option_u32_some(now);
 		state->mode = LOGIC_MODE_ESTOPPED;
+		// Note: if it was high and remains high, we want to continue to update estop_triggered_time
+		// so the ESTOP_TRIGGERED_DELAY doesn't start until the remote estop goes low again
 
 		HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_RESET);
 		HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_RESET);
