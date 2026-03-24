@@ -15,8 +15,13 @@ void logic_init(logic_state_t* state) {
 	state->mode = LOGIC_MODE_STARTING;
 	state->boot_time = HAL_GetTick();
 	state->estop_triggered_time = option_u32_none(); // not currently triggered
-
-    state->estop_above_threshold_start_time = option_u32_none(); // not currently above threshold
+	debounce_controller_init(
+		&state->estop_debounce,
+		false,
+		ESTOP_RISING_DEBOUNCE,
+		ESTOP_FALLING_DEBOUNCE,
+		ESTOP_ACCUMULATING_DEBOUNCE
+	);
 
 	ibus_init(&state->ibus);
 	state->last_can_tx_time = 0;
@@ -46,21 +51,14 @@ void logic_run(
 
 	// Check for remote ESTOP trigger
 	uint16_t estop_channel_value = state->ibus.channels[IBUS_CHANNEL_ESTOP];
-	if (estop_channel_value >= IBUS_ESTOP_THRESHOLD) {
-		if (option_u32_is_none(state->estop_above_threshold_start_time)) {
-			// Just observed ESTOP channel go above threshold, start debounce timer
-			state->estop_above_threshold_start_time = option_u32_some(now);
-		} else if (now - option_u32_unwrap(state->estop_above_threshold_start_time) >= IBUS_ESTOP_RISING_DEBOUNCE_TIME) {
-			// ESTOP channel has been above threshold for long enough, consider remote ESTOP triggered
-			state->estop_triggered_time = option_u32_some(now);
-			state->mode = LOGIC_MODE_ESTOPPED;
+	bool estop_raw_high = estop_channel_value >= ESTOP_PWM_THRESHOLD;
+	bool estop_debounced_high = debounce_controller_update(&state->estop_debounce, estop_raw_high, now);
+	if (estop_debounced_high) {
+		state->estop_triggered_time = option_u32_some(now);
+		state->mode = LOGIC_MODE_ESTOPPED;
 
-			HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_RESET);
-			HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_RESET);
-		}
-	} else {
-		// ESTOP channel is below threshold, reset debounce timer
-		state->estop_above_threshold_start_time = option_u32_none();
+		HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_RESET);
 	}
 
 	// Boot state machine logic

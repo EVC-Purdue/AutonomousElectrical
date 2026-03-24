@@ -21,6 +21,11 @@
 #define IBUS_CHANNEL_MODE     (2) // ~1000 = RC mode, ~2000 = autonomous mode
 #define IBUS_CHANNEL_ESTOP    (3) // ~1000 = not pressed, ~2000 = estop
 
+#define ESTOP_PWM_THRESHOLD (1500) // if the ESTOP channel goes above this value, consider the remote estop to be triggered
+#define ESTOP_RISING_DEBOUNCE (300) // ms, require the ESTOP channel to be above the threshold for at least this long before considering the remote estop to be triggered
+#define ESTOP_ACCUMULATING_DEBOUNCE (30) // ms, when the rising estop is debouncing/accumulating, require the ESTOP channel to be below the threshold for at least this long before resetting the debounce timer
+#define ESTOP_FALLING_DEBOUNCE (50) // ms, require the ESTOP channel to be below the threshold for at least this long before considering the remote estop to be no longer triggered
+
 
 typedef enum {
 	LOGIC_MODE_STARTING = 0,
@@ -38,7 +43,7 @@ typedef struct {
 	uint32_t last_can_tx_time;
 
 	uint32_t boot_time; // HAL_GetTick() timestamp of when the system initialized
-	option_u32_t estop_above_threshold_start_time; // HAL_GetTick() timestamp of when the ESTOP channel was first observed to go above the threshold, or none if currently below the threshold
+	debounce_controller_t estop_debounce; // debounce controller for the remote estop channel
 	option_u32_t estop_triggered_time; // HAL_GetTick() timestamp of when the remote estop was triggered or none if it is not currently triggered
 
 	volatile uint16_t can_current_throttle; // 0-1000

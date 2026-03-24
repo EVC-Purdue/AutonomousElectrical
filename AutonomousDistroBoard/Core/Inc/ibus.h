@@ -13,10 +13,6 @@
 #define IBUS_HEADER_DLC (0x20)
 #define IBUS_HEADER_COMMAND (0x40)
 
-#define IBUS_ESTOP_THRESHOLD (1500) // if the ESTOP channel goes above this value, consider the remote estop to be triggered
-#define IBUS_ESTOP_RISING_DEBOUNCE_TIME (500) // ms, require the ESTOP channel to be above the threshold for at least this long before considering the remote estop to be triggered
-#define IBUS_ESTOP_FALLING_DEBOUNCE_TIME (50) // ms, when the rising estop is debouncing/accumulating, require the ESTOP channel to be below the threshold for at least this long before resetting the debounce timer
-
 
 // iBUS data structure
 typedef struct {
