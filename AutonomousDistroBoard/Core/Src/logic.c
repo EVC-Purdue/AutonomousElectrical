@@ -120,6 +120,7 @@ void logic_run(
 			.steering_pwm = state->can_current_steering * 20, // scale 0-1000 to 0-20000us
 		};
 		send_can_status(&status, hcan);
+		state->last_can_tx_time = now;
 	}
 	// REST OF LOGIC
 }
