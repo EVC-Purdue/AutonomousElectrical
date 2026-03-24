@@ -1,9 +1,17 @@
 #include "logic.h"
 
+#include <stdint.h>
+
+#include "main.h"
+#include "can.h"
+
+
 static logic_state_t* g_logic_state_ptr = NULL;
 
 
 void logic_init(logic_state_t* state) {
+	state->mode = LOGIC_MODE_BOOTING;
+
 	ibus_init(&state->ibus);
 	state->last_can_tx_time = 0;
 
@@ -27,4 +35,36 @@ void logic_run(
 ) {
 	// Process iBUS data
 	ibus_process(&state->ibus, sbus_huart);
+
+	// Boot state machine logic
+	uint32_t now = HAL_GetTick();
+	switch (state->mode) {
+		case LOGIC_MODE_BOOTING:
+			if (now >= state->boot_time + PRECHARGE_START_DELAY) {
+				state->mode = LOGIC_MODE_PRECHARGING;
+				// Start precharge: Precharge EN goes high
+				HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_SET);
+			}
+			break;
+
+		case LOGIC_MODE_PRECHARGING:
+			if (now >= state->boot_time + PRECHARGE_START_DELAY + PRECHARGE_DURATION) {
+				state->mode = LOGIC_MODE_CONTACTOR_CLOSING;
+				// Close contactor: Main Coil EN goes high
+				HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_SET);
+			}
+			break;
+
+		case LOGIC_MODE_CONTACTOR_CLOSING:
+			if (now >= state->boot_time + PRECHARGE_START_DELAY + PRECHARGE_DURATION + CONTACTOR_CLOSED_DELAY) {
+				state->mode = LOGIC_MODE_RUNNING;
+				// Contactor closed = precharge complete, Precharge EN can go low
+				HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_RESET);
+			}
+			break;
+
+		case LOGIC_MODE_RUNNING:
+			// Normal operation, nothing to do here for now
+			break;
+	}
 }

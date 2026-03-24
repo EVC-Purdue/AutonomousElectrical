@@ -9,9 +9,26 @@
 #include "ibus.h"
 #include "can.h"
 
+
+#define PRECHARGE_START_DELAY (200) // ms, wait from boot before starting precharge
+#define PRECHARGE_DURATION (3000) // ms, how long to run precharge before closing contactor
+#define CONTACTOR_CLOSED_DELAY (100) // ms, how long to wait after contactor is requested to be closed before considering it fully closed
+
+typedef enum {
+	LOGIC_MODE_BOOTING = 0,
+	LOGIC_MODE_PRECHARGING,
+	LOGIC_MODE_CONTACTOR_CLOSING,
+	LOGIC_MODE_RUNNING,
+} logic_mode_t;
+
+
 typedef struct {
+	logic_mode_t mode;
+
 	ibus_t ibus;
 	uint32_t last_can_tx_time;
+
+	uint32_t boot_time; // HAL_GetTick() timestamp of when the system initialized
 
 	volatile uint16_t can_current_throttle; // 0-1000
 	volatile uint16_t can_current_steering; // 0-1000
