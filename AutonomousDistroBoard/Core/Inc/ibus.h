@@ -2,6 +2,7 @@
 #define IBUS_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #include "stm32f4xx_hal.h"
 
@@ -16,6 +17,7 @@
 
 // iBUS data structure
 typedef struct {
+	uint32_t last_frame_time; // HAL_GetTick() timestamp of when the last valid frame was received
 	uint8_t dma_buffer[IBUS_DMA_BUFFER_SIZE]; // DMA buffer for incoming UART data
 	uint8_t frame[IBUS_FRAME_SIZE]; // Buffer for assembling a single iBUS frame
 	uint8_t frame_index; // Current index in the frame buffer
@@ -25,6 +27,8 @@ typedef struct {
 
 
 void ibus_init(ibus_t* ibus);
+
+bool ibus_is_connected(const ibus_t* ibus, uint32_t now, uint32_t timeout_ms);
 
 
 // Should be called in the main loop / 1kHz task to process incoming iBUS data

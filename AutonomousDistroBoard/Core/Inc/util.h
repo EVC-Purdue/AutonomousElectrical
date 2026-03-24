@@ -5,7 +5,7 @@
 #include <stdbool.h>
 
 
-bool has_elapsed(uint32_t now, uint32_t start, uint32_t duration_ms);
+bool util_has_elapsed(uint32_t now, uint32_t start, uint32_t duration_ms);
 
 
 // Option<uint32_t> type -----------------------------------------------------//

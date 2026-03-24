@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-bool has_elapsed(uint32_t now, uint32_t start, uint32_t duration_ms) {
+bool util_has_elapsed(uint32_t now, uint32_t start, uint32_t duration_ms) {
 	return (uint32_t)(now - start) >= duration_ms;
 }
 
@@ -65,7 +65,7 @@ bool debounce_controller_update(
 		if (option_u32_is_some(controller->transition_start_time)) {
 			if (option_u32_is_none(controller->interruption_start_time)) {
 				controller->interruption_start_time = option_u32_some(now);
-			} else if (has_elapsed(now, option_u32_unwrap(controller->interruption_start_time), controller->accumulating_debounce_ms)) {
+			} else if (util_has_elapsed(now, option_u32_unwrap(controller->interruption_start_time), controller->accumulating_debounce_ms)) {
 				controller->transition_start_time = option_u32_none();
 				controller->interruption_start_time = option_u32_none();
 			}
@@ -84,7 +84,7 @@ bool debounce_controller_update(
 		? controller->rising_debounce_ms
 		: controller->falling_debounce_ms;
 
-	if (has_elapsed(now, option_u32_unwrap(controller->transition_start_time), debounce_ms)) {
+	if (util_has_elapsed(now, option_u32_unwrap(controller->transition_start_time), debounce_ms)) {
 		controller->stable_state = raw_state;
 		controller->transition_start_time = option_u32_none();
 		controller->interruption_start_time = option_u32_none();

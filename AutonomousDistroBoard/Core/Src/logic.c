@@ -49,19 +49,22 @@ void logic_run(
 
 	uint32_t now = HAL_GetTick();
 
-	// Check for remote ESTOP trigger
-	uint16_t estop_channel_value = state->ibus.channels[IBUS_CHANNEL_ESTOP];
-	bool estop_raw_high = estop_channel_value >= ESTOP_PWM_THRESHOLD;
-	bool estop_debounced_high = debounce_controller_update(&state->estop_debounce, estop_raw_high, now);
-	if (estop_debounced_high) {
-		state->estop_triggered_time = option_u32_some(now);
-		state->mode = LOGIC_MODE_ESTOPPED;
-		// Note: if it was high and remains high, we want to continue to update estop_triggered_time
-		// so the ESTOP_TRIGGERED_DELAY doesn't start until the remote estop goes low again
+	// Check for RC connection timeout
+	if (!ibus_is_connected(&state->ibus, now, RC_CONNECTION_TIMEOUT)) {
+		state->mode = LOGIC_MODE_RC_DISCONNECTED;
+	}
 
-		// These should be set when LOGIC_MODE_ESTOPPED, but just for safety, set them here...
-		HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_RESET);
+	// Check for remote ESTOP trigger
+	if (ibus_is_connected(&state->ibus, now, RC_CONNECTION_TIMEOUT)) {
+		uint16_t estop_channel_value = state->ibus.channels[IBUS_CHANNEL_ESTOP];
+		bool estop_raw_high = estop_channel_value >= ESTOP_PWM_THRESHOLD;
+		bool estop_debounced_high = debounce_controller_update(&state->estop_debounce, estop_raw_high, now);
+		if (estop_debounced_high) {
+			state->estop_triggered_time = option_u32_some(now);
+			state->mode = LOGIC_MODE_ESTOPPED;
+			// Note: if it was high and remains high, we want to continue to update estop_triggered_time
+			// so the ESTOP_TRIGGERED_DELAY doesn't start until the remote estop goes low again
+		}
 	}
 
 	// Precharge/contactor state machine logic
@@ -113,6 +116,17 @@ void logic_run(
 				&& (now >= option_u32_unwrap(state->estop_triggered_time) + ESTOP_TRIGGERED_DELAY)) {
 				// After waiting for ESTOP_TRIGGERED_DELAY, restart precharge sequence
 				state->estop_triggered_time = option_u32_none(); // reset estop triggered time
+				state->mode = LOGIC_MODE_STARTING;
+			}
+			break;
+		}
+		case LOGIC_MODE_RC_DISCONNECTED: {
+			// STOP: precharge off, contactor off
+			HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_RESET);
+
+			if (ibus_is_connected(&state->ibus, now, RC_CONNECTION_TIMEOUT)) {
+				// If we receive a valid iBUS frame, consider the RC connection to be restored and restart precharge sequence
 				state->mode = LOGIC_MODE_STARTING;
 			}
 			break;

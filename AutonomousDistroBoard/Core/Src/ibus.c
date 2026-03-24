@@ -3,9 +3,15 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "util.h"
 
-void ibus_init(ibus_t *ibus) {
-    memset(ibus, 0, sizeof(*ibus));
+
+void ibus_init(ibus_t* ibus) {
+    memset(ibus, 0, sizeof(ibus_t));
+}
+
+bool ibus_is_connected(const ibus_t* ibus, uint32_t now, uint32_t timeout_ms) {
+    return !util_has_elapsed(now, ibus->last_frame_time, timeout_ms);
 }
 
 
@@ -25,7 +31,7 @@ void ibus_process(ibus_t* ibus, UART_HandleTypeDef* ibus_huart) {
 
 
 
-void ibus_parse_byte(ibus_t *ibus, uint8_t byte) {
+void ibus_parse_byte(ibus_t* ibus, uint8_t byte) {
 	// Byte 0:     Length = 0x20 (32)
 	// Byte 1:     Command = 0x40
 	// Byte 2-29:  14 channels, little-endian uint16
@@ -50,6 +56,8 @@ void ibus_parse_byte(ibus_t *ibus, uint8_t byte) {
 					ibus->channels[i] = ibus->frame[2 + i*2] | (ibus->frame[3 + i*2] << 8);
 				}
             }
+
+            ibus->last_frame_time = HAL_GetTick();
         }
     }
 }

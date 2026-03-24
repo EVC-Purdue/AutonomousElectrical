@@ -29,6 +29,8 @@
 #define CAN_TX_PERIOD  (10) // ms
 // #define CAN_RX_TIMEOUT (50) // ms
 
+#define RC_CONNECTION_TIMEOUT (100) // ms, if we did not get a valid iBUS frame within this time, consider the RC connection to be lost
+
 
 typedef enum {
 	LOGIC_MODE_STARTING = 0,
@@ -36,6 +38,7 @@ typedef enum {
 	LOGIC_MODE_CONTACTOR_CLOSING,
 	LOGIC_MODE_RUNNING,
 	LOGIC_MODE_ESTOPPED,
+	LOGIC_MODE_RC_DISCONNECTED
 } logic_mode_t;
 
 
