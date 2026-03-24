@@ -52,8 +52,7 @@ typedef struct {
 	ibus_t ibus;
 	uint32_t last_can_tx_time;
 
-	// TODO: boot time should be start time and it needs to be reset when transition back to start state
-	uint32_t boot_time; // HAL_GetTick() timestamp of when the system initialized
+	uint32_t start_time; // HAL_GetTick() timestamp of when the precharge sequence started
 	
 	debounce_controller_t estop_debounce; // debounce controller for the remote estop channel
 	option_u32_t estop_triggered_time; // HAL_GetTick() timestamp of when the remote estop was triggered or none if it is not currently triggered

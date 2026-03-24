@@ -13,7 +13,7 @@ static logic_state_t* g_logic_state_ptr = NULL;
 
 void logic_init(logic_state_t* state) {
 	state->mode = LOGIC_MODE_STARTING;
-	state->boot_time = HAL_GetTick();
+	state->start_time = HAL_GetTick();
 	state->estop_triggered_time = option_u32_none(); // not currently triggered
 	
 	debounce_controller_init(
@@ -84,7 +84,7 @@ void logic_run(
 			HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_RESET);
 			HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_RESET);
 
-			if (now >= state->boot_time + PRECHARGE_START_DELAY) {
+			if (now >= state->start_time + PRECHARGE_START_DELAY) {
 				state->mode = LOGIC_MODE_PRECHARGING;
 			}
 			break;
@@ -94,7 +94,7 @@ void logic_run(
 			HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_SET);
 			HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_RESET);
 
-			if (now >= state->boot_time + PRECHARGE_START_DELAY + PRECHARGE_DURATION) {
+			if (now >= state->start_time + PRECHARGE_START_DELAY + PRECHARGE_DURATION) {
 				state->mode = LOGIC_MODE_CONTACTOR_CLOSING;
 			}
 			break;
@@ -104,7 +104,7 @@ void logic_run(
 			HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_SET);
 			HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_SET);
 
-			if (now >= state->boot_time + PRECHARGE_START_DELAY + PRECHARGE_DURATION + CONTACTOR_CLOSED_DELAY) {
+			if (now >= state->start_time + PRECHARGE_START_DELAY + PRECHARGE_DURATION + CONTACTOR_CLOSED_DELAY) {
 				state->mode = LOGIC_MODE_RUNNING;
 			}
 			break;
@@ -137,6 +137,7 @@ void logic_run(
 				// After waiting for ESTOP_TRIGGERED_DELAY, restart precharge sequence
 				state->estop_triggered_time = option_u32_none(); // reset estop triggered time
 				state->mode = LOGIC_MODE_STARTING;
+				state->start_time = now;
 			}
 			break;
 		}
@@ -148,6 +149,7 @@ void logic_run(
 			if (ibus_is_connected(&state->ibus, now, RC_CONNECTION_TIMEOUT)) {
 				// If we receive a valid iBUS frame, consider the RC connection to be restored and restart precharge sequence
 				state->mode = LOGIC_MODE_STARTING;
+				state->start_time = now;
 			}
 			break;
 		}
