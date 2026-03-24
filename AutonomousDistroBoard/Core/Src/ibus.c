@@ -31,14 +31,14 @@ void ibus_parse_byte(ibus_t *ibus, uint8_t byte) {
 	// Byte 2-29:  14 channels, little-endian uint16
 	// Byte 30-31: checksum (little-endian)
 
-    if (ibus->frame_index == 0 && byte != 0x20) {
+    if (ibus->frame_index == 0 && byte != IBUS_HEADER_DLC) {
         return; // wait for frame start
 	}
 
     ibus->frame[ibus->frame_index++] = byte;
     if (ibus->frame_index == IBUS_FRAME_SIZE) {
         ibus->frame_index = 0;
-        if (ibus->frame[1] == 0x40) {
+        if (ibus->frame[1] == IBUS_HEADER_COMMAND) {
             uint16_t checksum = 0xFFFF;
             for (int i = 0; i < 30; i++) {
 				checksum -= ibus->frame[i];

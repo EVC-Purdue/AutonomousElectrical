@@ -10,6 +10,9 @@
 #define IBUS_FRAME_SIZE (32)
 #define IBUS_DMA_BUFFER_SIZE (128)
 
+#define IBUS_HEADER_DLC (0x20)
+#define IBUS_HEADER_COMMAND (0x40)
+
 
 // iBUS data structure
 typedef struct {
