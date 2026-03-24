@@ -52,6 +52,9 @@ void logic_run(
 			// ESTOP channel has been above threshold for long enough, consider remote ESTOP triggered
 			state->estop_triggered_time = HAL_GetTick();
 			state->mode = LOGIC_MODE_ESTOPPED;
+
+			HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_RESET);
 		}
 	} else {
 		// ESTOP channel is below threshold, reset debounce timer
