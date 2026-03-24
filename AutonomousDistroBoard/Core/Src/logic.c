@@ -67,4 +67,17 @@ void logic_run(
 			// Normal operation, nothing to do here for now
 			break;
 	}
+
+	// Periodically send CAN status messages
+	if (now - state->last_can_tx_time >= CAN_TX_PERIOD) {
+		can_status_msg_t status = {
+			.precharge = (state->mode == LOGIC_MODE_PRECHARGING),
+			.contactor = (state->mode == LOGIC_MODE_RUNNING),
+			.rc_mode = 0, // TODO
+			.throttle_pwm = state->can_current_throttle * 20, // scale 0-1000 to 0-20000us
+			.steering_pwm = state->can_current_steering * 20, // scale 0-1000 to 0-20000us
+		};
+		send_can_status(&status, hcan);
+	}
+	// REST OF LOGIC
 }
