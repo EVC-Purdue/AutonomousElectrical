@@ -13,12 +13,14 @@
 #define PRECHARGE_START_DELAY (200) // ms, wait from boot before starting precharge
 #define PRECHARGE_DURATION (3000) // ms, how long to run precharge before closing contactor
 #define CONTACTOR_CLOSED_DELAY (100) // ms, how long to wait after contactor is requested to be closed before considering it fully closed
+#define ESTOP_TRIGGERED_DELAY (3000) // ms, after remote estop is triggered, how long to wait before restarting the precharge sequence
 
 typedef enum {
 	LOGIC_MODE_BOOTING = 0,
 	LOGIC_MODE_PRECHARGING,
 	LOGIC_MODE_CONTACTOR_CLOSING,
 	LOGIC_MODE_RUNNING,
+	LOGIC_MODE_ESTOPPED,
 } logic_mode_t;
 
 
@@ -29,6 +31,7 @@ typedef struct {
 	uint32_t last_can_tx_time;
 
 	uint32_t boot_time; // HAL_GetTick() timestamp of when the system initialized
+	uint32_t estop_triggered_time; // HAL_GetTick() timestamp of when the remote estop was triggered or UINT32_MAX if not currently triggered
 
 	volatile uint16_t can_current_throttle; // 0-1000
 	volatile uint16_t can_current_steering; // 0-1000

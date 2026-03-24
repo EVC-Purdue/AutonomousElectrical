@@ -11,6 +11,8 @@ static logic_state_t* g_logic_state_ptr = NULL;
 
 void logic_init(logic_state_t* state) {
 	state->mode = LOGIC_MODE_BOOTING;
+	state->boot_time = HAL_GetTick();
+	state->estop_triggered_time = UINT32_MAX; // not currently triggered
 
 	ibus_init(&state->ibus);
 	state->last_can_tx_time = 0;
@@ -35,6 +37,9 @@ void logic_run(
 ) {
 	// Process iBUS data
 	ibus_process(&state->ibus, sbus_huart);
+
+	// TODO: Check for remote ESTOP trigger
+	// 500ms debounce!!
 
 	// Boot state machine logic
 	uint32_t now = HAL_GetTick();
@@ -65,6 +70,23 @@ void logic_run(
 
 		case LOGIC_MODE_RUNNING:
 			// Normal operation, nothing to do here for now
+			break;
+		case LOGIC_MODE_ESTOPPED:
+			// For safety, force set main coil and precharge off
+			HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_RESET);
+
+			if ((state->estop_triggered_time != UINT32_MAX)
+				&& (now >= state->estop_triggered_time + ESTOP_TRIGGERED_DELAY)) {
+				// After waiting for ESTOP_TRIGGERED_DELAY, restart precharge sequence
+				state->mode = LOGIC_MODE_BOOTING;
+				state->estop_triggered_time = UINT32_MAX; // reset estop triggered time
+
+				// Reset to booting state (both precharge and main coil off),
+				// then the logic will set precharge on in the next step of the state machine
+				HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_RESET);
+				HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_RESET);
+			}
 			break;
 	}
 
