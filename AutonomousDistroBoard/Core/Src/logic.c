@@ -84,7 +84,7 @@ void logic_run(
 			HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_RESET);
 			HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_RESET);
 
-			if (now >= state->start_time + PRECHARGE_START_DELAY) {
+			if (util_has_elapsed(now, state->start_time, PRECHARGE_START_DELAY)) {
 				state->mode = LOGIC_MODE_PRECHARGING;
 			}
 			break;
@@ -94,7 +94,8 @@ void logic_run(
 			HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_SET);
 			HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_RESET);
 
-			if (now >= state->start_time + PRECHARGE_START_DELAY + PRECHARGE_DURATION) {
+			uint32_t total_delay = PRECHARGE_START_DELAY + PRECHARGE_DURATION;
+			if (util_has_elapsed(now, state->start_time, total_delay)) {
 				state->mode = LOGIC_MODE_CONTACTOR_CLOSING;
 			}
 			break;
@@ -104,7 +105,8 @@ void logic_run(
 			HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_SET);
 			HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_SET);
 
-			if (now >= state->start_time + PRECHARGE_START_DELAY + PRECHARGE_DURATION + CONTACTOR_CLOSED_DELAY) {
+			uint32_t total_delay = PRECHARGE_START_DELAY + PRECHARGE_DURATION + CONTACTOR_CLOSED_DELAY;
+			if (util_has_elapsed(now, state->start_time, total_delay)) {
 				state->mode = LOGIC_MODE_RUNNING;
 			}
 			break;
@@ -133,7 +135,7 @@ void logic_run(
 			HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_RESET);
 
 			if (option_u32_is_some(state->estop_triggered_time)
-				&& (now >= option_u32_unwrap(state->estop_triggered_time) + ESTOP_TRIGGERED_DELAY)) {
+			    && util_has_elapsed(now, option_u32_unwrap(state->estop_triggered_time), ESTOP_TRIGGERED_DELAY)) {
 				// After waiting for ESTOP_TRIGGERED_DELAY, restart precharge sequence
 				state->estop_triggered_time = option_u32_none(); // reset estop triggered time
 				state->mode = LOGIC_MODE_STARTING;
@@ -162,7 +164,7 @@ void logic_run(
 		can_status_msg_t status = {
 			.precharge = (state->mode == LOGIC_MODE_PRECHARGING),
 			.contactor = (state->mode == LOGIC_MODE_RUNNING),
-			.rc_mode = 0, // TODO
+			.rc_mode = !debounce_controller_get_state(&state->mode_debounce), // if mode_debounce is low, we are in RC mode
 			.throttle_pwm = state->can_current_throttle * 20, // scale 0-1000 to 0-20000us
 			.steering_pwm = state->can_current_steering * 20, // scale 0-1000 to 0-20000us
 		};
