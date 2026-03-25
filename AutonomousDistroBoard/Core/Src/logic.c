@@ -191,9 +191,8 @@ void logic_run(
 	// Periodically send CAN status messages
 	if (util_has_elapsed(now, state->last_can_tx_time, CAN_TX_PERIOD)) {
 		can_status_msg_t status = {
-			.precharge = (state->mode == LOGIC_MODE_PRECHARGING),
-			.contactor = (state->mode == LOGIC_MODE_RUNNING),
-			.rc_mode = !debounce_controller_get_state(&state->mode_debounce), // if mode_debounce is low, we are in RC mode
+			.mode = (uint8_t)state->mode,
+			.rc_mode = debounce_controller_get_state(&state->mode_debounce), // if mode_debounce is low, we are in RC mode
 			.throttle_pwm = output_throttle_pwm,
 			.steering_pwm = output_steering_pwm
 		};

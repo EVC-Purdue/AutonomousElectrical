@@ -24,21 +24,19 @@ typedef struct {
 
 
 // - ID = `0x101` - **Status update** (TX)
-// 	- Byte 0: precharge + contactor + rc mode (bit flags)
-// 		- Bit0 = precharge
-// 		- Bit1 = contactor
-// 		- Bit2 = RC mode
-// 		- Bits3-7 = 0
-// 	- Byte 1-2: throttle PWM (uint16_t, little endian)
-// 	- Byte 3-4: steering PWM (uint16_t, little endian)
+// 	- Byte 0: state machine mode + rc mode
+// 		- Bits0-3 = state machine mode (see logic.h::logic_mode_t)
+// 		- Bit4 = RC mode (0 = rc mode, 1 = autonomous mode)
+// 		- Bits5-7 = reserved
+// 	- Byte 1-2: throttle PWM (uint16_t, little endian), the actual PWM value being sent to the ESC for throttle (1000-2000)
+// 	- Byte 3-4: steering PWM (uint16_t, little endian), the actual PWM value being sent to the servo for steering (1000-2000)
 // 	- Byte 5-7: reserved / future use
 #define CAN_ID_STATUS (0x101)
 typedef struct {
-	bool precharge;
-	bool contactor;
-	bool rc_mode;
-	uint16_t throttle_pwm;
-	uint16_t steering_pwm;
+	uint8_t mode; // logic_mode_t
+	bool rc_mode; // false = rc mode, true = autonomous mode
+	uint16_t throttle_pwm; // actual PWM value being sent to the ESC for throttle (1000-2000)
+	uint16_t steering_pwm; // actual PWM value being sent to the servo for steering (1000-2000)
 } can_status_msg_t;
 
 
