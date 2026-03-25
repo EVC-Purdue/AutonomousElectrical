@@ -230,4 +230,33 @@ void logic_run(
 		send_can_status(&status, hcan);
 		state->last_can_tx_time = now;
 	}
+
+	// Blink LED
+	uint16_t led_period = 0;
+	switch (state->mode) {
+		case LOGIC_MODE_STARTING:          led_period = LED_STARTING_PERIOD;          break;
+		case LOGIC_MODE_PRECHARGING:       led_period = LED_PRECHARGING_PERIOD;       break;
+		case LOGIC_MODE_CONTACTOR_CLOSING: led_period = LED_CONTACTOR_CLOSING_PERIOD; break;
+		case LOGIC_MODE_RUNNING: {
+			bool autonomous_mode = debounce_controller_get_state(&state->mode_debounce);
+			if (autonomous_mode) {
+				led_period = LED_RUNNING_AUTONOMOUS_PERIOD;
+			} else {
+				led_period = LED_RUNNING_RC_PERIOD;
+			}
+			break;
+		}
+		case LOGIC_MODE_ESTOPPED:	       led_period = LED_ESTOPPED_PERIOD;          break;
+		case LOGIC_MODE_RC_DISCONNECTED:   led_period = LED_RC_DISCONNECTED_PERIOD;   break;
+		case LOGIC_MODE_CAN_DISCONNECTED:  led_period = LED_CAN_DISCONNECTED_PERIOD;  break;
+	}
+	if (led_period == 0) {
+		// Solid on
+		HAL_GPIO_WritePin(LED_OUT_GPIO_Port, LED_OUT_Pin, GPIO_PIN_SET);
+	} else {
+		if (util_has_elapsed(now, state->led_blink_timestamp, led_period)) {
+			HAL_GPIO_TogglePin(LED_OUT_GPIO_Port, LED_OUT_Pin);
+			state->led_blink_timestamp = now;
+		}
+	}
 }

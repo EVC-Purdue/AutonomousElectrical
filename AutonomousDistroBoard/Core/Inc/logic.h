@@ -35,6 +35,15 @@
 
 #define RC_CONNECTION_TIMEOUT (100) // ms, if we did not get a valid iBUS frame within this time, consider the RC connection to be lost
 
+#define LED_STARTING_PERIOD (20) // ms
+#define LED_PRECHARGING_PERIOD (100) // ms
+#define LED_CONTACTOR_CLOSING_PERIOD (20) // ms
+#define LED_RUNNING_RC_PERIOD (1000) // ms
+#define LED_RUNNING_AUTONOMOUS_PERIOD (500) // ms
+#define LED_ESTOPPED_PERIOD (0) // solid on
+#define LED_RC_DISCONNECTED_PERIOD (0) // solid on
+#define LED_CAN_DISCONNECTED_PERIOD (0) // solid on
+
 #define THROTTLE_PWM_LOW  (1000)
 #define THROTTLE_PWM_HIGH (2000)
 #define STEERING_PWM_LOW  (1000)
@@ -69,6 +78,8 @@ typedef struct {
 	volatile uint16_t can_current_throttle_pwm; // 1000-2000, updated by CAN RX callback
 	volatile uint16_t can_current_steering_pwm; // 1000-2000, updated by CAN RX callback
 	volatile uint32_t last_control_timestamp; // HAL_GetTick() timestamp of last received control message
+
+	uint32_t led_blink_timestamp; // HAL_GetTick() timestamp of last LED toggle
 } logic_state_t;
 
 void logic_init(logic_state_t* state);
