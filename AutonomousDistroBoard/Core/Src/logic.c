@@ -34,6 +34,10 @@ void logic_init(logic_state_t* state) {
 	ibus_init(&state->ibus);
 	state->last_can_tx_time = 0;
 
+	state->can_current_throttle_pwm = THROTTLE_PWM_LOW;
+	state->can_current_steering_pwm = (STEERING_PWM_LOW + STEERING_PWM_HIGH) / 2;
+	state->last_control_timestamp = 0;
+
 	g_logic_state_ptr = state;
 }
 
@@ -42,15 +46,17 @@ void logic_handle_control(const can_control_msg_t* cmd) {
 		return;
 	}
 
-	g_logic_state_ptr->can_current_throttle = cmd->throttle;
-	g_logic_state_ptr->can_current_steering = cmd->steering;
+	g_logic_state_ptr->can_current_throttle_pwm = can_throttle_to_pwm(cmd);
+	g_logic_state_ptr->can_current_steering_pwm = can_steering_to_pwm(cmd);
 	g_logic_state_ptr->last_control_timestamp = HAL_GetTick();
 }
 
 void logic_run(
 	logic_state_t* state,
 	UART_HandleTypeDef *sbus_huart,
-	CAN_HandleTypeDef *hcan
+	CAN_HandleTypeDef *hcan,
+	TIM_HandleTypeDef *throttle_htim,
+	TIM_HandleTypeDef *steering_htim
 ) {
 	// Process iBUS data
 	ibus_process(&state->ibus, sbus_huart);
@@ -75,7 +81,9 @@ void logic_run(
 		}
 	}
 
-	// TODO: output pwm for throttle and steering
+	uint16_t output_throttle_pwm = 0;
+	uint16_t output_steering_pwm = 0;
+	// TODO: handle for when not in running mode
 
 	// Precharge/contactor state machine logic
 	switch (state->mode) {
@@ -127,6 +135,21 @@ void logic_run(
 
 			bool autonomous_mode = debounce_controller_get_state(&state->mode_debounce);
 
+			// In autonomous mode, ignore iBUS throttle and steering and only use CAN commands
+			if (autonomous_mode) {
+				output_throttle_pwm = state->can_current_throttle_pwm;
+				output_steering_pwm = state->can_current_steering_pwm;
+			} 
+			// In RC mode, ignore CAN commands and only use iBUS throttle and steering
+			else {
+				uint16_t ibus_throttle_pwm = state->ibus.channels[IBUS_CHANNEL_THROTTLE];
+				uint16_t ibus_steering_pwm = state->ibus.channels[IBUS_CHANNEL_STEERING];
+
+				output_throttle_pwm = THROTTLE_PWM_LOW + (ibus_throttle_pwm - THROTTLE_PWM_LOW) / RC_MODE_THROTTLE_DIVISOR;
+				output_steering_pwm = ibus_steering_pwm;
+			}
+
+
 			break;
 		} //--------------------------------------------------------------------------//
 		case LOGIC_MODE_ESTOPPED: {
@@ -157,16 +180,22 @@ void logic_run(
 		}
 	}
 
-	// REST OF LOGIC
+	// Clamp the output PWM values to their valid ranges just in case
+	output_throttle_pwm = clamp_u16(output_throttle_pwm, THROTTLE_PWM_LOW, THROTTLE_PWM_HIGH);
+	output_steering_pwm = clamp_u16(output_steering_pwm, STEERING_PWM_LOW, STEERING_PWM_HIGH);
+
+	// Output the PWM values
+	__HAL_TIM_SET_COMPARE(throttle_htim, TIM_CHANNEL_1, output_throttle_pwm);
+	__HAL_TIM_SET_COMPARE(steering_htim, TIM_CHANNEL_1, output_steering_pwm);
 
 	// Periodically send CAN status messages
-	if (now - state->last_can_tx_time >= CAN_TX_PERIOD) {
+	if (util_has_elapsed(now, state->last_can_tx_time, CAN_TX_PERIOD)) {
 		can_status_msg_t status = {
 			.precharge = (state->mode == LOGIC_MODE_PRECHARGING),
 			.contactor = (state->mode == LOGIC_MODE_RUNNING),
 			.rc_mode = !debounce_controller_get_state(&state->mode_debounce), // if mode_debounce is low, we are in RC mode
-			.throttle_pwm = state->can_current_throttle * 20, // scale 0-1000 to 0-20000us
-			.steering_pwm = state->can_current_steering * 20, // scale 0-1000 to 0-20000us
+			.throttle_pwm = output_throttle_pwm,
+			.steering_pwm = output_steering_pwm
 		};
 		send_can_status(&status, hcan);
 		state->last_can_tx_time = now;

@@ -127,7 +127,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    logic_run(&g_logic_state, &huart3, &hcan2);
+    logic_run(&g_logic_state, &huart3, &hcan2, &htim11, &htim1);
   }
   /* USER CODE END 3 */
 }

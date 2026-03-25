@@ -3,6 +3,7 @@
 #include "stm32f4xx_hal.h"
 
 #include "logic.h"
+#include "util.h"
 
 
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
@@ -53,3 +54,9 @@ void send_can_status(const can_status_msg_t* status, CAN_HandleTypeDef* hcan) {
 }
 
 
+uint16_t can_throttle_to_pwm(const can_control_msg_t* cmd) {
+	return map_u16(cmd->throttle, 0, CAN_THROTTLE_MAX, THROTTLE_PWM_LOW, THROTTLE_PWM_HIGH);
+}
+uint16_t can_steering_to_pwm(const can_control_msg_t* cmd) {
+	return map_u16(cmd->steering, 0, CAN_STEERING_MAX, STEERING_PWM_LOW, STEERING_PWM_HIGH);
+}

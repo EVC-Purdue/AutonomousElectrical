@@ -35,6 +35,12 @@
 
 #define RC_CONNECTION_TIMEOUT (100) // ms, if we did not get a valid iBUS frame within this time, consider the RC connection to be lost
 
+#define THROTTLE_PWM_LOW  (1000)
+#define THROTTLE_PWM_HIGH (2000)
+#define STEERING_PWM_LOW  (1000)
+#define STEERING_PWM_HIGH (2000)
+
+#define RC_MODE_THROTTLE_DIVISOR (3) // divide the iBUS throttle PWM by this much
 
 typedef enum {
 	LOGIC_MODE_STARTING = 0,
@@ -59,8 +65,8 @@ typedef struct {
 
 	debounce_controller_t mode_debounce; // low = RC mode, high = autonomous mode
 
-	volatile uint16_t can_current_throttle; // 0-1000
-	volatile uint16_t can_current_steering; // 0-1000
+	volatile uint16_t can_current_throttle_pwm; // 1000-2000, updated by CAN RX callback
+	volatile uint16_t can_current_steering_pwm; // 1000-2000, updated by CAN RX callback
 	volatile uint32_t last_control_timestamp; // HAL_GetTick() timestamp of last received control message
 } logic_state_t;
 
@@ -71,7 +77,9 @@ void logic_init(logic_state_t* state);
 void logic_run(
 	logic_state_t* state,
 	UART_HandleTypeDef *sbus_huart,
-	CAN_HandleTypeDef *hcan
+	CAN_HandleTypeDef *hcan,
+	TIM_HandleTypeDef *throttle_htim,
+	TIM_HandleTypeDef *steering_htim
 );
 
 // Called from CAN RX callback when a control message is received

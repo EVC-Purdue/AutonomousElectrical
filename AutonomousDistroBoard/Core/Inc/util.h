@@ -6,6 +6,8 @@
 
 
 bool util_has_elapsed(uint32_t now, uint32_t start, uint32_t duration_ms);
+uint16_t clamp_u16(uint16_t value, uint16_t min, uint16_t max);
+uint16_t map_u16(uint16_t value, uint16_t in_min, uint16_t in_max, uint16_t out_min, uint16_t out_max);
 
 
 // Option<uint32_t> type -----------------------------------------------------//
