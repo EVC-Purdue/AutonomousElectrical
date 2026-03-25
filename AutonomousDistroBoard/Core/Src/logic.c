@@ -137,8 +137,17 @@ void logic_run(
 
 			// In autonomous mode, ignore iBUS throttle and steering and only use CAN commands
 			if (autonomous_mode) {
-				output_throttle_pwm = state->can_current_throttle_pwm;
-				output_steering_pwm = state->can_current_steering_pwm;
+				if (!util_has_elapsed(now, state->last_control_timestamp, CAN_RX_TIMEOUT)) {
+					// If we have received a control message recently, consider the CAN connection to be
+					// healthy and use CAN commands for throttle and steering
+					output_throttle_pwm = state->can_current_throttle_pwm;
+					output_steering_pwm = state->can_current_steering_pwm;
+				} else {
+					// If we have not received a control message recently, consider the CAN connection to
+					// be lost and switch to CAN_DISCONNECTED mode
+					state->mode = LOGIC_MODE_CAN_DISCONNECTED;
+					output_throttle_pwm = THROTTLE_PWM_LOW; // stop the car if CAN connection is lost
+				}
 			} 
 			// In RC mode, ignore CAN commands and only use iBUS throttle and steering
 			else {
@@ -173,6 +182,28 @@ void logic_run(
 
 			if (ibus_is_connected(&state->ibus, now, RC_CONNECTION_TIMEOUT)) {
 				// If we receive a valid iBUS frame, consider the RC connection to be restored and restart precharge sequence
+				state->mode = LOGIC_MODE_STARTING;
+				state->start_time = now;
+			}
+			break;
+		}
+		case LOGIC_MODE_CAN_DISCONNECTED: {
+			// CAN disconnect in autonomous mode = stop the kart
+			// STOP: precharge off, contactor off
+			HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_RESET);
+
+			uint16_t mode_channel_value = state->ibus.channels[IBUS_CHANNEL_MODE];
+			bool mode_raw_high = mode_channel_value >= MODE_PWM_THRESHOLD;
+			debounce_controller_update(&state->mode_debounce, mode_raw_high, now);
+
+			bool autonomous_mode = debounce_controller_get_state(&state->mode_debounce);
+
+			if ((autonomous_mode && !util_has_elapsed(now, state->last_control_timestamp, CAN_RX_TIMEOUT))
+		 		|| (!autonomous_mode && ibus_is_connected(&state->ibus, now, RC_CONNECTION_TIMEOUT))) {
+				// If we are trying to be autonomous and receive a valid CAN control message,
+				// or if we are in RC mode and receive a valid iBUS frame,
+				// consider the connection to be restored and restart precharge sequence
 				state->mode = LOGIC_MODE_STARTING;
 				state->start_time = now;
 			}

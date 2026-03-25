@@ -31,7 +31,7 @@
 #define MODE_ACCUMULATING_DEBOUNCE_MS (50) // ms, when the rising MODE is debouncing/accumulating, require the MODE channel to be below the threshold for at least this long before resetting the debounce timer
 
 #define CAN_TX_PERIOD  (10) // ms
-// #define CAN_RX_TIMEOUT (50) // ms
+#define CAN_RX_TIMEOUT (50) // ms
 
 #define RC_CONNECTION_TIMEOUT (100) // ms, if we did not get a valid iBUS frame within this time, consider the RC connection to be lost
 
@@ -48,7 +48,8 @@ typedef enum {
 	LOGIC_MODE_CONTACTOR_CLOSING,
 	LOGIC_MODE_RUNNING,
 	LOGIC_MODE_ESTOPPED,
-	LOGIC_MODE_RC_DISCONNECTED
+	LOGIC_MODE_RC_DISCONNECTED,
+	LOGIC_MODE_CAN_DISCONNECTED
 } logic_mode_t;
 
 
