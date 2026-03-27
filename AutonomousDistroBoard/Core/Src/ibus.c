@@ -16,7 +16,8 @@ bool ibus_is_connected(const ibus_t* ibus, uint32_t now, uint32_t timeout_ms) {
 
 
 void ibus_process(ibus_t* ibus, UART_HandleTypeDef* ibus_huart) {
-    uint16_t dma_pos = IBUS_DMA_BUFFER_SIZE - __HAL_DMA_GET_COUNTER(ibus_huart->hdmarx);
+    uint16_t dma_remaining = __HAL_DMA_GET_COUNTER(ibus_huart->hdmarx);
+    uint16_t dma_pos = (IBUS_DMA_BUFFER_SIZE - dma_remaining) % IBUS_DMA_BUFFER_SIZE;
 
     while (ibus->dma_last_pos != dma_pos) {
         uint8_t byte = ibus->dma_buffer[ibus->dma_last_pos++];
