@@ -59,8 +59,6 @@
 #define STEERING_PWM_Pin (GPIO_PIN_9)
 #define STEERING_PWM_AF (GPIO_AF3_TIM11)
 
-#define RC_MODE_THROTTLE_DIVISOR (3) // divide the iBUS throttle PWM by this much
-
 typedef enum {
 	LOGIC_MODE_STARTING = 0,
 	LOGIC_MODE_PRECHARGING,
