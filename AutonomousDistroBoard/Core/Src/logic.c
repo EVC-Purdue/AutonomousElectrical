@@ -142,7 +142,8 @@ void logic_run(
 					// If we have not received a control message recently, consider the CAN connection to
 					// be lost and switch to CAN_DISCONNECTED mode
 					state->mode = LOGIC_MODE_CAN_DISCONNECTED;
-					state->output_throttle_pwm = THROTTLE_PWM_LOW; // stop the car if CAN connection is lost
+					state->output_throttle_pwm = THROTTLE_PWM_LOW;
+					state->output_steering_pwm = STEERING_PWM_CENTER;
 				}
 			} 
 			// In RC mode, ignore CAN commands and only use iBUS throttle and steering
