@@ -22,8 +22,21 @@ uint16_t map_u16(uint16_t value, uint16_t in_min, uint16_t in_max, uint16_t out_
 		// Avoid division by zero; return the midpoint of the output range
 		return (out_min + out_max) / 2;
 	}
-	uint32_t scaled = (uint32_t)(value - in_min) * (out_max - out_min);
-	return (uint16_t)(scaled / (in_max - in_min) + out_min);
+
+	// Saturate value to input range to avoid underflow/overflow in arithmetic
+	if (value <= in_min) {
+		return out_min;
+	}
+	if (value >= in_max) {
+		return out_max;
+	}
+
+	uint32_t range_in  = (uint32_t)in_max  - (uint32_t)in_min;
+	uint32_t range_out = (uint32_t)out_max - (uint32_t)out_min;
+	uint32_t num       = (uint32_t)value  - (uint32_t)in_min;
+	uint32_t scaled    = num * range_out;
+
+	return (uint16_t)(scaled / range_in + out_min);
 }
 //----------------------------------------------------------------------------//
 
