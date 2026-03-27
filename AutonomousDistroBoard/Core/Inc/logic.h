@@ -2,7 +2,6 @@
 #define LOGIC_H
 
 #include <stdint.h>
-#include <string.h>
 
 #include "stm32f4xx_hal.h"
 
@@ -12,7 +11,7 @@
 
 
 #define PRECHARGE_START_DELAY  (200) // ms, wait from boot before starting precharge
-#define PRECHARGE_DURATION     (3000) // ms, how long to run precharge before closing contactor
+#define PRECHARGE_DURATION     (5000) // ms, how long to run precharge before closing contactor
 #define CONTACTOR_CLOSED_DELAY (100) // ms, how long to wait after contactor is requested to be closed before considering it fully closed
 #define RECOVERING_DELAY       (5000) // ms, how long to wait after transistioning after a fault (E-STOP, RC disconnect, CAN disconnect) before allowing to transition back to STARTING mode/precharge sequence
 
