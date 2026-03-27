@@ -57,7 +57,7 @@ Autonomous Project electrical stack code
 	- Byte 3-4: steering PWM (uint16_t, little endian), the actual PWM value being sent to the servo for steering (1000-2000)
 	- Byte 5-7: reserved / future use
 
-## Autonomous Nucelo
+## Autonomous Nucleo
 
 ### Pin Definitions 
 

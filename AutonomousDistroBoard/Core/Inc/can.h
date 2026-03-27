@@ -15,6 +15,7 @@
 // 	- Byte 2-3: steering (uint16_t, little endian), 0-1000, where 1000 = full right, 500 = center, 0 = full left
 // 	- Byte 4-7: reserved / future use
 #define CAN_ID_CONTROL (0x100)
+#define CAN_CONTROL_MIN_BYTES (4)
 #define CAN_THROTTLE_MAX (1000)
 #define CAN_STEERING_MAX (1000)
 typedef struct {

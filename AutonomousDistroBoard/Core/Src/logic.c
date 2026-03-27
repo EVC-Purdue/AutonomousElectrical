@@ -187,7 +187,7 @@ void logic_run(
 		}
 		case LOGIC_MODE_CAN_DISCONNECTED: {
 			// CAN disconnect in autonomous mode = stop the kart
-			// STOP: precharge off, contactor off, throttle low, steering straigh
+			// STOP: precharge off, contactor off, throttle low, steering straight
 			HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_RESET);
 			HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_RESET);
 			state->output_throttle_pwm = THROTTLE_PWM_LOW;
@@ -229,7 +229,7 @@ void logic_run(
 			state->throttle_enabled = false;
 		}
 	}
-	// All modes set the intended steering posistion
+	// All modes set the intended steering position
 	// And steering is powered from Distro/Control Board, not through contactor
 	__HAL_TIM_SET_COMPARE(steering_htim, TIM_CHANNEL_1, state->output_steering_pwm);
 
