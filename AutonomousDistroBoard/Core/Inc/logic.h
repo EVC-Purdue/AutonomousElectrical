@@ -34,9 +34,10 @@
 
 #define RC_CONNECTION_TIMEOUT (100) // ms, if we did not get a valid iBUS frame within this time, consider the RC connection to be lost
 
-#define LED_STARTING_PERIOD (20) // ms
-#define LED_PRECHARGING_PERIOD (100) // ms
-#define LED_CONTACTOR_CLOSING_PERIOD (20) // ms
+// Really these are half periods b/c it is the rate at which the LED toggles
+#define LED_STARTING_PERIOD (40) // ms
+#define LED_PRECHARGING_PERIOD (200) // ms
+#define LED_CONTACTOR_CLOSING_PERIOD (40) // ms
 #define LED_RUNNING_RC_PERIOD (1000) // ms
 #define LED_RUNNING_AUTONOMOUS_PERIOD (500) // ms
 #define LED_ESTOPPED_PERIOD (0) // solid on
