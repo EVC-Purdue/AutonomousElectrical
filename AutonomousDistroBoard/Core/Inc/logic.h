@@ -48,6 +48,15 @@
 #define THROTTLE_PWM_HIGH (2000)
 #define STEERING_PWM_LOW  (1000)
 #define STEERING_PWM_HIGH (2000)
+#define STEERING_PWM_CENTER ((STEERING_PWM_LOW + STEERING_PWM_HIGH) / 2)
+
+#define THROTTLE_PWM_GPIO_Port (GPIOB)
+#define THROTTLE_PWM_Pin (GPIO_PIN_9)
+#define THROTTLE_PWM_AF (GPIO_AF2_TIM4)
+
+#define STEERING_PWM_GPIO_Port (GPIOE)
+#define STEERING_PWM_Pin (GPIO_PIN_9)
+#define STEERING_PWM_AF (GPIO_AF3_TIM11)
 
 #define RC_MODE_THROTTLE_DIVISOR (3) // divide the iBUS throttle PWM by this much
 
@@ -71,8 +80,6 @@ typedef struct {
 	uint32_t start_time; // HAL_GetTick() timestamp of when the precharge sequence started
 	
 	debounce_controller_t estop_debounce; // debounce controller for the remote estop channel
-	option_u32_t estop_triggered_time; // HAL_GetTick() timestamp of when the remote estop was triggered or none if it is not currently triggered
-
 	debounce_controller_t mode_debounce; // low = RC mode, high = autonomous mode
 
 	volatile uint16_t can_current_throttle_pwm; // 1000-2000, updated by CAN RX callback
@@ -80,6 +87,10 @@ typedef struct {
 	volatile uint32_t last_control_timestamp; // HAL_GetTick() timestamp of last received control message
 
 	uint32_t led_blink_timestamp; // HAL_GetTick() timestamp of last LED toggle
+
+	uint16_t output_throttle_pwm; // 1000-2000, the throttle PWM value that we will output (either from iBUS or CAN depending on mode)
+	uint16_t output_steering_pwm; // 1000-2000, the steering PWM value that we will output (either from iBUS or CAN depending on mode)
+	bool throttle_enabled; // whether the PWM channel for the throttle is enabled vs in input/high-impedance mode
 } logic_state_t;
 
 void logic_init(logic_state_t* state);
@@ -98,6 +109,9 @@ void logic_run(
 // Uses the global static pointer to the logic state, since the CAN callback
 // doesn't have a way to pass user data
 void logic_handle_control(const can_control_msg_t* cmd);
+
+void pwm_disable(TIM_HandleTypeDef* htim, GPIO_TypeDef* gpio_port, uint32_t gpio_pin);
+void pwm_enable(TIM_HandleTypeDef* htim, GPIO_TypeDef* gpio_port, uint32_t gpio_pin, uint32_t alternate_function);
 
 
 
