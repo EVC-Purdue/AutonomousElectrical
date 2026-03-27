@@ -171,7 +171,7 @@ void logic_run(
 
 			bool estop_debounced_high = debounce_controller_get_state(&state->estop_debounce);
 			if (!estop_debounced_high) {
-				state->mode = LOGIC_MODE_STARTING;
+				state->mode = LOGIC_MODE_RECOVERING;
 				state->start_time = now;
 			}
 			break;
@@ -184,8 +184,7 @@ void logic_run(
 			state->output_steering_pwm = STEERING_PWM_CENTER;
 
 			if (ibus_is_connected(&state->ibus, now, RC_CONNECTION_TIMEOUT)) {
-				// If we receive a valid iBUS frame, consider the RC connection to be restored and restart precharge sequence
-				state->mode = LOGIC_MODE_STARTING;
+				state->mode = LOGIC_MODE_RECOVERING;
 				state->start_time = now;
 			}
 			break;
@@ -208,9 +207,23 @@ void logic_run(
 
 			if ((autonomous_mode && can_connection_ok)
 				|| (!autonomous_mode && ibus_connection_ok)) {
+				state->mode = LOGIC_MODE_RECOVERING;
+				state->start_time = now;
+			}
+			break;
+		}
+		case LOGIC_MODE_RECOVERING: {
+			// Still stopped: precharge off, contactor off, throttle low, steering straight
+			HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_RESET);
+			state->output_throttle_pwm = THROTTLE_PWM_LOW;
+			state->output_steering_pwm = STEERING_PWM_CENTER;
+
+			if (util_has_elapsed(now, state->start_time, RECOVERING_DELAY)) {
 				state->mode = LOGIC_MODE_STARTING;
 				state->start_time = now;
 			}
+
 			break;
 		}
 	}
@@ -268,6 +281,7 @@ void logic_run(
 		case LOGIC_MODE_ESTOPPED:	       led_period = LED_ESTOPPED_PERIOD;          break;
 		case LOGIC_MODE_RC_DISCONNECTED:   led_period = LED_RC_DISCONNECTED_PERIOD;   break;
 		case LOGIC_MODE_CAN_DISCONNECTED:  led_period = LED_CAN_DISCONNECTED_PERIOD;  break;
+		case LOGIC_MODE_RECOVERING:        led_period = LED_RECOVERING_PERIOD;        break;
 	}
 	if (led_period == 0) {
 		// Solid on

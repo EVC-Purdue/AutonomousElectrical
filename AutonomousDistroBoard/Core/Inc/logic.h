@@ -14,6 +14,7 @@
 #define PRECHARGE_START_DELAY  (200) // ms, wait from boot before starting precharge
 #define PRECHARGE_DURATION     (3000) // ms, how long to run precharge before closing contactor
 #define CONTACTOR_CLOSED_DELAY (100) // ms, how long to wait after contactor is requested to be closed before considering it fully closed
+#define RECOVERING_DELAY       (5000) // ms, how long to wait after transistioning after a fault (E-STOP, RC disconnect, CAN disconnect) before allowing to transition back to STARTING mode/precharge sequence
 
 #define IBUS_CHANNEL_THROTTLE (0) // 1000 = full stop, 2000 = full throttle forward
 #define IBUS_CHANNEL_STEERING (1) // 1000 = full left, 1500 = center, 2000 = full right
@@ -35,14 +36,15 @@
 #define RC_CONNECTION_TIMEOUT (100) // ms, if we did not get a valid iBUS frame within this time, consider the RC connection to be lost
 
 // Really these are half periods b/c it is the rate at which the LED toggles
-#define LED_STARTING_PERIOD (40) // ms
-#define LED_PRECHARGING_PERIOD (200) // ms
-#define LED_CONTACTOR_CLOSING_PERIOD (40) // ms
-#define LED_RUNNING_RC_PERIOD (1000) // ms
-#define LED_RUNNING_AUTONOMOUS_PERIOD (500) // ms
-#define LED_ESTOPPED_PERIOD (0) // solid on
-#define LED_RC_DISCONNECTED_PERIOD (0) // solid on
-#define LED_CAN_DISCONNECTED_PERIOD (0) // solid on
+#define LED_STARTING_PERIOD           (100) // ms
+#define LED_PRECHARGING_PERIOD        (400) // ms
+#define LED_CONTACTOR_CLOSING_PERIOD  (50) // ms
+#define LED_RUNNING_RC_PERIOD         (1000) // ms
+#define LED_RUNNING_AUTONOMOUS_PERIOD (250) // ms
+#define LED_ESTOPPED_PERIOD           (0) // solid on
+#define LED_RC_DISCONNECTED_PERIOD    (0) // solid on
+#define LED_CAN_DISCONNECTED_PERIOD   (0) // solid on
+#define LED_RECOVERING_PERIOD         (2000) // ms
 
 #define THROTTLE_PWM_LOW  (1000)
 #define THROTTLE_PWM_HIGH (2000)
@@ -67,7 +69,8 @@ typedef enum {
 	LOGIC_MODE_RUNNING,
 	LOGIC_MODE_ESTOPPED,
 	LOGIC_MODE_RC_DISCONNECTED,
-	LOGIC_MODE_CAN_DISCONNECTED
+	LOGIC_MODE_CAN_DISCONNECTED,
+	LOGIC_MODE_RECOVERING,
 } logic_mode_t;
 
 
