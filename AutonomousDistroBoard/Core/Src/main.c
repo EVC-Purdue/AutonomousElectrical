@@ -110,12 +110,43 @@ int main(void)
   MX_USART3_UART_Init();
   MX_USB_OTG_FS_PCD_Init();
   /* USER CODE BEGIN 2 */
+  // Initialize logic state
   logic_init(&g_logic_state);
-  
 
+  // CAN
+  // CAN_S must be low for CAN to operate
+  HAL_GPIO_WritePin(CAN_S_GPIO_Port, CAN_S_Pin, GPIO_PIN_RESET);
+  
+  // Filter
+  CAN_FilterTypeDef filter = {0};
+  filter.FilterBank = 14; // CAN2 uses banks 14–27 on F4
+  filter.FilterMode = CAN_FILTERMODE_IDMASK;
+  filter.FilterScale = CAN_FILTERSCALE_32BIT;
+  // Accept all IDs (for debugging)
+  filter.FilterIdHigh = 0x0000;
+  filter.FilterIdLow = 0x0000;
+  filter.FilterMaskIdHigh = 0x0000;
+  filter.FilterMaskIdLow = 0x0000;
+  filter.FilterFIFOAssignment = CAN_RX_FIFO0;
+  filter.FilterActivation = ENABLE;
+  filter.SlaveStartFilterBank = 14;
+  
+  if (HAL_CAN_ConfigFilter(&hcan2, &filter) != HAL_OK) {
+    Error_Handler();
+  }
+  // Start CAN peripheral
+  if (HAL_CAN_Start(&hcan2) != HAL_OK) {
+    Error_Handler();
+  }
+  if (HAL_CAN_ActivateNotification(&hcan2, CAN_IT_RX_FIFO0_MSG_PENDING) != HAL_OK) {
+    Error_Handler();
+  }
+
+  // Start PWM outputs
   HAL_TIM_PWM_Start(&htim11, TIM_CHANNEL_1);
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
 
+  // Start iBUS circular DMA reception
   HAL_UART_Receive_DMA(&huart3, g_logic_state.ibus.dma_buffer, IBUS_DMA_BUFFER_SIZE);
 
   /* USER CODE END 2 */
