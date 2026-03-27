@@ -150,7 +150,11 @@ void logic_run(
 				uint16_t ibus_throttle_pwm = state->ibus.channels[IBUS_CHANNEL_THROTTLE];
 				uint16_t ibus_steering_pwm = state->ibus.channels[IBUS_CHANNEL_STEERING];
 
-				state->output_throttle_pwm = THROTTLE_PWM_LOW + (ibus_throttle_pwm - THROTTLE_PWM_LOW) / RC_MODE_THROTTLE_DIVISOR;
+				int32_t throttle_delta = (int32_t)ibus_throttle_pwm - (int32_t)THROTTLE_PWM_LOW;
+				if (throttle_delta < 0) {
+					throttle_delta = 0;
+				}
+				state->output_throttle_pwm = THROTTLE_PWM_LOW + (uint16_t)(throttle_delta / RC_MODE_THROTTLE_DIVISOR);
 				state->output_steering_pwm = ibus_steering_pwm;
 			}
 
