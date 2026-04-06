@@ -15,7 +15,7 @@
 #define CONTACTOR_CLOSED_DELAY (100) // ms, how long to wait after contactor is requested to be closed before considering it fully closed
 #define RECOVERING_DELAY       (5000) // ms, how long to wait after transistioning after a fault (E-STOP, RC disconnect, CAN disconnect) before allowing to transition back to STARTING mode/precharge sequence
 
-#define IBUS_CHANNEL_THROTTLE (1) // 1000 = full stop, 2000 = full throttle forward
+#define IBUS_CHANNEL_THROTTLE (1) // 1500 = full stop, 2000 = full throttle forward
 #define IBUS_CHANNEL_STEERING (3) // 1000 = full left, 1500 = center, 2000 = full right
 #define IBUS_CHANNEL_MODE     (4) // ~1000 = RC mode, ~2000 = autonomous mode
 #define IBUS_CHANNEL_ESTOP    (5) // ~1000 = not pressed, ~2000 = estop
