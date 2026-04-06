@@ -2,7 +2,9 @@
 
 Autonomous Project electrical stack code
 
-## Autonomous DistroBoard Pin Definitions 
+## Autonomous Control/Distro Board
+
+### Pin Definitions 
 
 - **CAN Bus (CAN2):**
     - RX: `PB5`
@@ -30,6 +32,7 @@ Autonomous Project electrical stack code
     - TIM11 (CH1): `PB9`
 
 - **GPIOs:**
+    - CAN_S: `PB7` 
     - Main Coil EN: `PE5`
     - Precharge EN: `PE6`
 	- LED OUT: `PE8`
@@ -39,7 +42,24 @@ Autonomous Project electrical stack code
     - SWCLK: `PA14`
     - OSC_IN/OUT: `PH0` / `PH1` (8MHz HSE)
 
-## Autonomous Nucelo Pin Definitions 
+### CAN messages
+
+- ID = `0x100` - **Control commands** (RX)
+	- Byte 0-1: throttle (uint16_t, little endian), 0-1000, where 1000 = full throttle
+	- Byte 2-3: steering (uint16_t, little endian), 0-1000, where 500 = straight, 0 = full left, 1000 = full right
+	- Byte 4-7: reserved / future use
+- ID = `0x101` - **Status update** (TX)
+	- Byte 0: state machine mode + rc mode
+		- Bits0-3 = state machine mode (see logic.h::logic_mode_t)
+		- Bit4 = RC mode (0 = rc mode, 1 = autonomous mode)
+		- Bits5-7 = reserved
+	- Byte 1-2: throttle PWM (uint16_t, little endian), the actual PWM value being sent to the ESC for throttle (1000-2000)
+	- Byte 3-4: steering PWM (uint16_t, little endian), the actual PWM value being sent to the servo for steering (1000-2000)
+	- Byte 5-7: reserved / future use
+
+## Autonomous Nucleo
+
+### Pin Definitions 
 
 - Rubik Pi 3 <-> nucleo-f446re: `SPI2`
 	- SCK: `PB10`

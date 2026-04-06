@@ -59,6 +59,14 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define MAIN_COIL_EN_Pin GPIO_PIN_5
+#define MAIN_COIL_EN_GPIO_Port GPIOE
+#define PRECHARGE_EN_Pin GPIO_PIN_6
+#define PRECHARGE_EN_GPIO_Port GPIOE
+#define LED_OUT_Pin GPIO_PIN_8
+#define LED_OUT_GPIO_Port GPIOE
+#define CAN_S_Pin GPIO_PIN_7
+#define CAN_S_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 
