@@ -19,6 +19,28 @@ Autonomous Project electrical stack code
 	- Byte 3-4: steering PWM (uint16_t, little endian), the actual PWM value being sent to the servo for steering (1000-2000)
 	- Byte 5-7: reserved / future use
 
+### RC configuration
+
+- Throttle
+	- Channel: 2 (index 1)
+	- At idle (center position): 1500 microseconds pulse width
+	- At full throttle forward: 2000 microseconds pulse width
+	- Pushing the throttle stick back still sends 1500
+- Steering
+	- Channel: 4 (index 3)
+	- At center position: 1500 microseconds pulse width
+	- At full right: 2000 microseconds pulse width
+	- At full left: 1000 microseconds pulse width
+- Mode switch
+	- Channel: 5 (index 4)
+	- In RC mode: 1000 microseconds pulse width (not activated posistion)
+	- In autonomous mode: 2000 microseconds pulse width (activated position)
+- E-Stop switch
+	- Channel: 6 (index 5)
+	- Not pressed: 1000 microseconds pulse width (not activated position)
+	- Pressed: 2000 microseconds pulse width (activated position)
+
+
 ### Pin Definitions 
 
 - **CAN Bus (CAN2):**
