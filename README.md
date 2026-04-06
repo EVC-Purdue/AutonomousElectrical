@@ -4,6 +4,21 @@ Autonomous Project electrical stack code
 
 ## Autonomous Control/Distro Board
 
+### CAN messages
+
+- ID = `0x100` - **Control commands** (RX)
+	- Byte 0-1: throttle (uint16_t, little endian), 0-1000, where 1000 = full throttle
+	- Byte 2-3: steering (uint16_t, little endian), 0-1000, where 500 = straight, 0 = full left, 1000 = full right
+	- Byte 4-7: reserved / future use
+- ID = `0x101` - **Status update** (TX)
+	- Byte 0: state machine mode + rc mode
+		- Bits0-3 = state machine mode (see logic.h::logic_mode_t)
+		- Bit4 = RC mode (0 = rc mode, 1 = autonomous mode)
+		- Bits5-7 = reserved
+	- Byte 1-2: throttle PWM (uint16_t, little endian), the actual PWM value being sent to the ESC for throttle (1000-2000)
+	- Byte 3-4: steering PWM (uint16_t, little endian), the actual PWM value being sent to the servo for steering (1000-2000)
+	- Byte 5-7: reserved / future use
+
 ### Pin Definitions 
 
 - **CAN Bus (CAN2):**
@@ -41,21 +56,6 @@ Autonomous Project electrical stack code
     - SWDIO: `PA13`
     - SWCLK: `PA14`
     - OSC_IN/OUT: `PH0` / `PH1` (8MHz HSE)
-
-### CAN messages
-
-- ID = `0x100` - **Control commands** (RX)
-	- Byte 0-1: throttle (uint16_t, little endian), 0-1000, where 1000 = full throttle
-	- Byte 2-3: steering (uint16_t, little endian), 0-1000, where 500 = straight, 0 = full left, 1000 = full right
-	- Byte 4-7: reserved / future use
-- ID = `0x101` - **Status update** (TX)
-	- Byte 0: state machine mode + rc mode
-		- Bits0-3 = state machine mode (see logic.h::logic_mode_t)
-		- Bit4 = RC mode (0 = rc mode, 1 = autonomous mode)
-		- Bits5-7 = reserved
-	- Byte 1-2: throttle PWM (uint16_t, little endian), the actual PWM value being sent to the ESC for throttle (1000-2000)
-	- Byte 3-4: steering PWM (uint16_t, little endian), the actual PWM value being sent to the servo for steering (1000-2000)
-	- Byte 5-7: reserved / future use
 
 ## Autonomous Nucleo
 
