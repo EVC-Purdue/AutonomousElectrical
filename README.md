@@ -79,6 +79,13 @@ Autonomous Project electrical stack code
     - SWCLK: `PA14`
     - OSC_IN/OUT: `PH0` / `PH1` (8MHz HSE)
 
+### State Machine
+
+<img width="779" height="2021" alt="Autonomous Distro-Control Board
+state machine"
+src="https://github.com/user-attachments/assets/a88d2ef2-eab9-4c80-acc3-6d577d6a04e4"
+/>
+
 ## Autonomous Nucleo
 
 ### Pin Definitions 
