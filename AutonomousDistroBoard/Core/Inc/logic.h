@@ -15,10 +15,10 @@
 #define CONTACTOR_CLOSED_DELAY (100) // ms, how long to wait after contactor is requested to be closed before considering it fully closed
 #define RECOVERING_DELAY       (5000) // ms, how long to wait after transistioning after a fault (E-STOP, RC disconnect, CAN disconnect) before allowing to transition back to STARTING mode/precharge sequence
 
-#define IBUS_CHANNEL_THROTTLE (0) // 1000 = full stop, 2000 = full throttle forward
-#define IBUS_CHANNEL_STEERING (1) // 1000 = full left, 1500 = center, 2000 = full right
-#define IBUS_CHANNEL_MODE     (2) // ~1000 = RC mode, ~2000 = autonomous mode
-#define IBUS_CHANNEL_ESTOP    (3) // ~1000 = not pressed, ~2000 = estop
+#define IBUS_CHANNEL_THROTTLE (1) // 1000 = full stop, 2000 = full throttle forward
+#define IBUS_CHANNEL_STEERING (3) // 1000 = full left, 1500 = center, 2000 = full right
+#define IBUS_CHANNEL_MODE     (4) // ~1000 = RC mode, ~2000 = autonomous mode
+#define IBUS_CHANNEL_ESTOP    (5) // ~1000 = not pressed, ~2000 = estop
 
 #define ESTOP_PWM_THRESHOLD         (1500) // if the ESTOP channel goes above this value, consider the remote estop to be triggered
 #define ESTOP_RISING_DEBOUNCE       (300) // ms, require the ESTOP channel to be above the threshold for at least this long before considering the remote estop to be triggered
@@ -58,8 +58,6 @@
 #define STEERING_PWM_GPIO_Port (GPIOE)
 #define STEERING_PWM_Pin (GPIO_PIN_9)
 #define STEERING_PWM_AF (GPIO_AF3_TIM11)
-
-#define RC_MODE_THROTTLE_DIVISOR (3) // divide the iBUS throttle PWM by this much
 
 typedef enum {
 	LOGIC_MODE_STARTING = 0,
