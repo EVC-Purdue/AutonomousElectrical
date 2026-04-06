@@ -229,20 +229,21 @@ void logic_run(
 	state->output_steering_pwm = clamp_u16(state->output_steering_pwm, STEERING_PWM_LOW, STEERING_PWM_HIGH);
 
 	// Output the PWM values
-	bool should_throttle = state->mode == LOGIC_MODE_RUNNING;
-	if (should_throttle) {
-		if (!state->throttle_enabled) {
-			pwm_enable(throttle_htim, THROTTLE_PWM_GPIO_Port, THROTTLE_PWM_Pin, THROTTLE_PWM_AF);
-			state->throttle_enabled = true;
-		}
-		__HAL_TIM_SET_COMPARE(throttle_htim, TIM_CHANNEL_1, state->output_throttle_pwm);
-	} else {
-		if (state->throttle_enabled) {
-			__HAL_TIM_SET_COMPARE(throttle_htim, TIM_CHANNEL_1, state->output_throttle_pwm);
-			pwm_disable(throttle_htim, THROTTLE_PWM_GPIO_Port, THROTTLE_PWM_Pin);
-			state->throttle_enabled = false;
-		}
-	}
+	// bool should_throttle = state->mode == LOGIC_MODE_RUNNING;
+	// if (should_throttle) {
+	// 	if (!state->throttle_enabled) {
+	// 		pwm_enable(throttle_htim, THROTTLE_PWM_GPIO_Port, THROTTLE_PWM_Pin, THROTTLE_PWM_AF);
+	// 		state->throttle_enabled = true;
+	// 	}
+	// 	__HAL_TIM_SET_COMPARE(throttle_htim, TIM_CHANNEL_1, state->output_throttle_pwm);
+	// } else {
+	// 	if (state->throttle_enabled) {
+	// 		__HAL_TIM_SET_COMPARE(throttle_htim, TIM_CHANNEL_1, state->output_throttle_pwm);
+	// 		pwm_disable(throttle_htim, THROTTLE_PWM_GPIO_Port, THROTTLE_PWM_Pin);
+	// 		state->throttle_enabled = false;
+	// 	}
+	// }
+	__HAL_TIM_SET_COMPARE(throttle_htim, TIM_CHANNEL_1, state->output_throttle_pwm);
 	// All modes set the intended steering position
 	// And steering is powered from Distro/Control Board, not through contactor
 	__HAL_TIM_SET_COMPARE(steering_htim, TIM_CHANNEL_1, state->output_steering_pwm);
