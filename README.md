@@ -4,6 +4,43 @@ Autonomous Project electrical stack code
 
 ## Autonomous Control/Distro Board
 
+### CAN messages
+
+- ID = `0x100` - **Control commands** (RX)
+	- Byte 0-1: throttle (uint16_t, little endian), 0-1000, where 1000 = full throttle
+	- Byte 2-3: steering (uint16_t, little endian), 0-1000, where 500 = straight, 0 = full left, 1000 = full right
+	- Byte 4-7: reserved / future use
+- ID = `0x101` - **Status update** (TX)
+	- Byte 0: state machine mode + rc mode
+		- Bits0-3 = state machine mode (see logic.h::logic_mode_t)
+		- Bit4 = RC mode (0 = rc mode, 1 = autonomous mode)
+		- Bits5-7 = reserved
+	- Byte 1-2: throttle PWM (uint16_t, little endian), the actual PWM value being sent to the ESC for throttle (1000-2000)
+	- Byte 3-4: steering PWM (uint16_t, little endian), the actual PWM value being sent to the servo for steering (1000-2000)
+	- Byte 5-7: reserved / future use
+
+### RC configuration
+
+- Throttle
+	- Channel: 2 (index 1)
+	- At idle (center position): 1500 microseconds pulse width
+	- At full throttle forward: 2000 microseconds pulse width
+	- Pushing the throttle stick back still sends 1500
+- Steering
+	- Channel: 4 (index 3)
+	- At center position: 1500 microseconds pulse width
+	- At full right: 2000 microseconds pulse width
+	- At full left: 1000 microseconds pulse width
+- Mode switch
+	- Channel: 5 (index 4)
+	- In RC mode: 1000 microseconds pulse width (not activated posistion)
+	- In autonomous mode: 2000 microseconds pulse width (activated position)
+- E-Stop switch
+	- Channel: 6 (index 5)
+	- Not pressed: 1000 microseconds pulse width (not activated position)
+	- Pressed: 2000 microseconds pulse width (activated position)
+
+
 ### Pin Definitions 
 
 - **CAN Bus (CAN2):**
@@ -42,20 +79,12 @@ Autonomous Project electrical stack code
     - SWCLK: `PA14`
     - OSC_IN/OUT: `PH0` / `PH1` (8MHz HSE)
 
-### CAN messages
+### State Machine
 
-- ID = `0x100` - **Control commands** (RX)
-	- Byte 0-1: throttle (uint16_t, little endian), 0-1000, where 1000 = full throttle
-	- Byte 2-3: steering (uint16_t, little endian), 0-1000, where 500 = straight, 0 = full left, 1000 = full right
-	- Byte 4-7: reserved / future use
-- ID = `0x101` - **Status update** (TX)
-	- Byte 0: state machine mode + rc mode
-		- Bits0-3 = state machine mode (see logic.h::logic_mode_t)
-		- Bit4 = RC mode (0 = rc mode, 1 = autonomous mode)
-		- Bits5-7 = reserved
-	- Byte 1-2: throttle PWM (uint16_t, little endian), the actual PWM value being sent to the ESC for throttle (1000-2000)
-	- Byte 3-4: steering PWM (uint16_t, little endian), the actual PWM value being sent to the servo for steering (1000-2000)
-	- Byte 5-7: reserved / future use
+<img width="779" height="2021" alt="Autonomous Distro-Control Board
+state machine"
+src="https://github.com/user-attachments/assets/a88d2ef2-eab9-4c80-acc3-6d577d6a04e4"
+/>
 
 ## Autonomous Nucleo
 
