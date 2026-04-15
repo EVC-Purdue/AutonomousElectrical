@@ -272,9 +272,7 @@ void logic_run(
 		// Solid on
 		HAL_GPIO_WritePin(LED_OUT_GPIO_Port, LED_OUT_Pin, GPIO_PIN_SET);
 	} else {
-		if (util_has_elapsed(now, state->led_blink_timestamp, led_period)) {
-			HAL_GPIO_TogglePin(LED_OUT_GPIO_Port, LED_OUT_Pin);
-			state->led_blink_timestamp = now;
-		}
+		bool led_on = (now / led_period) % 2 == 0;
+		HAL_GPIO_WritePin(LED_OUT_GPIO_Port, LED_OUT_Pin, led_on ? GPIO_PIN_SET : GPIO_PIN_RESET);
 	}
 }
