@@ -72,11 +72,11 @@ typedef enum {
 
 
 typedef struct {
+	logic_mode_t mode; // Don't set directly, always use logic_switch_mode() to ensure mode_start_time is updated
+	uint32_t mode_start_time; // HAL_GetTick() timestamp of when we entered the current mode
 
 	ibus_t ibus;
 	uint32_t last_can_tx_time;
-
-	uint32_t start_time; // HAL_GetTick() timestamp of when the precharge sequence started
 	
 	debounce_controller_t estop_debounce; // debounce controller for the remote estop channel
 	debounce_controller_t mode_debounce; // low = RC mode, high = autonomous mode
@@ -94,13 +94,15 @@ typedef struct {
 
 void logic_init(logic_state_t* state);
 
+void logic_switch_mode(logic_state_t* state, logic_mode_t new_mode);
 
 // Called once in the main loop
 void logic_run(
 	logic_state_t* state,
-	TIM_HandleTypeDef *steering_htim
 	UART_HandleTypeDef* sbus_huart,
 	CAN_HandleTypeDef* hcan,
+	TIM_HandleTypeDef* throttle_htim,
+	TIM_HandleTypeDef* steering_htim
 );
 
 // Called from CAN RX callback when a control message is received
