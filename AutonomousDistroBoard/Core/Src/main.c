@@ -18,7 +18,6 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include <stdint.h>
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -139,6 +138,10 @@ int main(void)
     Error_Handler();
   }
   // Start CAN peripheral
+  if (HAL_CAN_Start(&hcan1) != HAL_OK) {
+    // Must start CAN1 even though we only use CAN2 because CAN2 is a slave to CAN1 on F4
+    Error_Handler();
+  }
   if (HAL_CAN_Start(&hcan2) != HAL_OK) {
     Error_Handler();
   }
