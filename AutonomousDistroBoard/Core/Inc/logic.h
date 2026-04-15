@@ -90,7 +90,6 @@ typedef struct {
 
 	uint16_t output_throttle_pwm; // 1000-2000, the throttle PWM value that we will output (either from iBUS or CAN depending on mode)
 	uint16_t output_steering_pwm; // 1000-2000, the steering PWM value that we will output (either from iBUS or CAN depending on mode)
-	bool throttle_enabled; // whether the PWM channel for the throttle is enabled vs in input/high-impedance mode
 } logic_state_t;
 
 void logic_init(logic_state_t* state);

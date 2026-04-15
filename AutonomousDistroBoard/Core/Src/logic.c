@@ -39,7 +39,6 @@ void logic_init(logic_state_t* state) {
 
 	state->output_throttle_pwm = THROTTLE_PWM_LOW;
 	state->output_steering_pwm = STEERING_PWM_CENTER;
-	state->throttle_enabled = true; // HAL init sets up the PWM
 
 	g_logic_state_ptr = state;
 }
