@@ -34,11 +34,11 @@ void logic_init(logic_state_t* state) {
 	state->last_can_tx_time = 0;
 
 	state->can_current_throttle_pwm = THROTTLE_PWM_LOW;
-	state->can_current_steering_pwm = (STEERING_PWM_LOW + STEERING_PWM_HIGH) / 2;
+	state->can_current_steering_pwm = STEERING_PWM_CENTER;
 	state->last_control_timestamp = 0;
 
 	state->output_throttle_pwm = THROTTLE_PWM_LOW;
-	state->output_steering_pwm = (STEERING_PWM_LOW + STEERING_PWM_HIGH) / 2;
+	state->output_steering_pwm = STEERING_PWM_CENTER;
 	state->throttle_enabled = true; // HAL init sets up the PWM
 
 	g_logic_state_ptr = state;
