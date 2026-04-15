@@ -157,8 +157,8 @@ void logic_run(
 				uint16_t ibus_throttle_pwm = state->ibus.channels[IBUS_CHANNEL_THROTTLE];
 				uint16_t ibus_steering_pwm = state->ibus.channels[IBUS_CHANNEL_STEERING];
 
-				state->output_throttle_pwm = map_u16(ibus_throttle_pwm, 1500, 2000, THROTTLE_PWM_LOW, THROTTLE_PWM_HIGH);
-				state->output_steering_pwm = ibus_steering_pwm;
+				state->output_throttle_pwm = map_u16(ibus_throttle_pwm, THROTTLE_STICK_IDLE, THROTTLE_STICK_MAX, THROTTLE_PWM_LOW, THROTTLE_PWM_HIGH);
+				state->output_steering_pwm = ibus_steering_pwm; // iBUS steering is already in the form of a PWM value, just pass it through directly
 			}
 
 
