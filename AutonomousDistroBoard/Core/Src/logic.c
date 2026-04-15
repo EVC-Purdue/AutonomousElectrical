@@ -13,7 +13,7 @@ static logic_state_t* g_logic_state_ptr = NULL;
 
 void logic_init(logic_state_t* state) {
 	state->mode = LOGIC_MODE_STARTING;
-	state->mode_start_time = HAL_GetTick();
+	state->last_mode_set_time = HAL_GetTick();
 	
 	debounce_controller_init(
 		&state->estop_debounce,
@@ -59,7 +59,7 @@ void logic_switch_mode(logic_state_t* state, logic_mode_t new_mode, uint32_t now
 	}
 
 	state->mode = new_mode;
-	state->mode_start_time = now;
+	state->last_mode_set_time = now;
 }
 
 void logic_run(
@@ -102,7 +102,7 @@ void logic_run(
 			HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_RESET);
 			HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_RESET);
 
-			if (util_has_elapsed(now, state->mode_start_time, PRECHARGE_START_DELAY)) {
+			if (util_has_elapsed(now, state->last_mode_set_time, PRECHARGE_START_DELAY)) {
 				logic_switch_mode(state, LOGIC_MODE_PRECHARGING, now);
 			}
 			break;
@@ -112,7 +112,7 @@ void logic_run(
 			HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_SET);
 			HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_RESET);
 
-			if (util_has_elapsed(now, state->mode_start_time, PRECHARGE_DURATION)) {
+			if (util_has_elapsed(now, state->last_mode_set_time, PRECHARGE_DURATION)) {
 				logic_switch_mode(state, LOGIC_MODE_CONTACTOR_CLOSING, now);
 			}
 			break;
@@ -122,7 +122,7 @@ void logic_run(
 			HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_SET);
 			HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_SET);
 
-			if (util_has_elapsed(now, state->mode_start_time, CONTACTOR_CLOSED_DELAY)) {
+			if (util_has_elapsed(now, state->last_mode_set_time, CONTACTOR_CLOSED_DELAY)) {
 				logic_switch_mode(state, LOGIC_MODE_RUNNING, now);
 			}
 			break;
@@ -217,7 +217,7 @@ void logic_run(
 			state->output_throttle_pwm = THROTTLE_PWM_LOW;
 			state->output_steering_pwm = STEERING_PWM_CENTER;
 
-			if (util_has_elapsed(now, state->mode_start_time, RECOVERING_DELAY)) {
+			if (util_has_elapsed(now, state->last_mode_set_time, RECOVERING_DELAY)) {
 				logic_switch_mode(state, LOGIC_MODE_STARTING, now);
 			}
 
