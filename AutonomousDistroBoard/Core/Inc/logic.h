@@ -95,7 +95,7 @@ typedef struct {
 
 void logic_init(logic_state_t* state);
 
-void logic_switch_mode(logic_state_t* state, logic_mode_t new_mode);
+void logic_switch_mode(logic_state_t* state, logic_mode_t new_mode, uint32_t now);
 
 // Called once in the main loop
 void logic_run(

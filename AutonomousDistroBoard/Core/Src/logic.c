@@ -54,13 +54,13 @@ void logic_handle_control(const can_control_msg_t* cmd) {
 	g_logic_state_ptr->last_control_timestamp = HAL_GetTick();
 }
 
-void logic_switch_mode(logic_state_t* state, logic_mode_t new_mode) {
+void logic_switch_mode(logic_state_t* state, logic_mode_t new_mode, uint32_t now) {
 	if (state == NULL) {
 		return;
 	}
 
 	state->mode = new_mode;
-	state->mode_start_time = HAL_GetTick();
+	state->mode_start_time = now;
 }
 
 void logic_run(
@@ -77,7 +77,7 @@ void logic_run(
 
 	// All states: Check for RC connection timeout
 	if (!ibus_is_connected(&state->ibus, now, RC_CONNECTION_TIMEOUT)) {
-		logic_switch_mode(state, LOGIC_MODE_RC_DISCONNECTED);
+		logic_switch_mode(state, LOGIC_MODE_RC_DISCONNECTED, now);
 	} else {
 		// All states: update RC debounce controllers
 		uint16_t estop_channel_value = state->ibus.channels[IBUS_CHANNEL_ESTOP];
@@ -91,7 +91,7 @@ void logic_run(
 		// All states: check remote estop
 		bool estop_debounced_high = debounce_controller_get_state(&state->estop_debounce);
 		if (estop_debounced_high) {
-			logic_switch_mode(state, LOGIC_MODE_ESTOPPED);
+			logic_switch_mode(state, LOGIC_MODE_ESTOPPED, now);
 			// Note: if it was high and remains high, we want to continue to force
 		}
 	}
@@ -104,7 +104,7 @@ void logic_run(
 			HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_RESET);
 
 			if (util_has_elapsed(now, state->mode_start_time, PRECHARGE_START_DELAY)) {
-				logic_switch_mode(state, LOGIC_MODE_PRECHARGING);
+				logic_switch_mode(state, LOGIC_MODE_PRECHARGING, now);
 			}
 			break;
 		}
@@ -114,7 +114,7 @@ void logic_run(
 			HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_RESET);
 
 			if (util_has_elapsed(now, state->mode_start_time, PRECHARGE_DURATION)) {
-				logic_switch_mode(state, LOGIC_MODE_CONTACTOR_CLOSING);
+				logic_switch_mode(state, LOGIC_MODE_CONTACTOR_CLOSING, now);
 			}
 			break;
 		}
@@ -124,7 +124,7 @@ void logic_run(
 			HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_SET);
 
 			if (util_has_elapsed(now, state->mode_start_time, CONTACTOR_CLOSED_DELAY)) {
-				logic_switch_mode(state, LOGIC_MODE_RUNNING);
+				logic_switch_mode(state, LOGIC_MODE_RUNNING, now);
 			}
 			break;
 		}
@@ -147,7 +147,7 @@ void logic_run(
 				} else {
 					// If we have not received a control message recently, consider the CAN connection to
 					// be lost and switch to CAN_DISCONNECTED mode
-					logic_switch_mode(state, LOGIC_MODE_CAN_DISCONNECTED);
+					logic_switch_mode(state, LOGIC_MODE_CAN_DISCONNECTED, now);
 					state->output_throttle_pwm = THROTTLE_PWM_LOW;
 					state->output_steering_pwm = STEERING_PWM_CENTER;
 				}
@@ -173,7 +173,7 @@ void logic_run(
 
 			bool estop_debounced_high = debounce_controller_get_state(&state->estop_debounce);
 			if (!estop_debounced_high) {
-				logic_switch_mode(state, LOGIC_MODE_RECOVERING);
+				logic_switch_mode(state, LOGIC_MODE_RECOVERING, now);
 			}
 			break;
 		}
@@ -185,7 +185,7 @@ void logic_run(
 			state->output_steering_pwm = STEERING_PWM_CENTER;
 
 			if (ibus_is_connected(&state->ibus, now, RC_CONNECTION_TIMEOUT)) {
-				logic_switch_mode(state, LOGIC_MODE_RECOVERING);
+				logic_switch_mode(state, LOGIC_MODE_RECOVERING, now);
 			}
 			break;
 		}
@@ -207,7 +207,7 @@ void logic_run(
 
 			if ((autonomous_mode && can_connection_ok)
 				|| (!autonomous_mode && ibus_connection_ok)) {
-				logic_switch_mode(state, LOGIC_MODE_RECOVERING);
+				logic_switch_mode(state, LOGIC_MODE_RECOVERING, now);
 			}
 			break;
 		}
@@ -219,7 +219,7 @@ void logic_run(
 			state->output_steering_pwm = STEERING_PWM_CENTER;
 
 			if (util_has_elapsed(now, state->mode_start_time, RECOVERING_DELAY)) {
-				logic_switch_mode(state, LOGIC_MODE_STARTING);
+				logic_switch_mode(state, LOGIC_MODE_STARTING, now);
 			}
 
 			break;
