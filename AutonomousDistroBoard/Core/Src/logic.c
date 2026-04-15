@@ -56,10 +56,10 @@ void logic_handle_control(const can_control_msg_t* cmd) {
 
 void logic_run(
 	logic_state_t* state,
-	UART_HandleTypeDef *sbus_huart,
-	CAN_HandleTypeDef *hcan,
-	TIM_HandleTypeDef *throttle_htim,
-	TIM_HandleTypeDef *steering_htim
+	UART_HandleTypeDef* sbus_huart,
+	CAN_HandleTypeDef* hcan,
+	TIM_HandleTypeDef* throttle_htim,
+	TIM_HandleTypeDef* steering_htim
 ) {
 	// Process iBUS data
 	ibus_process(&state->ibus, sbus_huart);

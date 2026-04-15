@@ -103,6 +103,7 @@ void logic_run(
 	CAN_HandleTypeDef *hcan,
 	TIM_HandleTypeDef *throttle_htim,
 	TIM_HandleTypeDef *steering_htim
+	CAN_HandleTypeDef* hcan,
 );
 
 // Called from CAN RX callback when a control message is received
