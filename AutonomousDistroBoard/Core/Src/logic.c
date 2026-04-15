@@ -218,9 +218,6 @@ void logic_run(
 			state->output_throttle_pwm = THROTTLE_PWM_LOW;
 			state->output_steering_pwm = STEERING_PWM_CENTER;
 
-			// Note: when, for example, we have RC_DISCONNECTED error it will keep
-			// calling logic_switch_mode with RC_DISCONNECTED every loop, which will reset
-			// the mode_start_time and correctly prevent us from ever leaving the RECOVERING mode
 			if (util_has_elapsed(now, state->mode_start_time, RECOVERING_DELAY)) {
 				logic_switch_mode(state, LOGIC_MODE_STARTING);
 			}
