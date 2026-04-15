@@ -75,7 +75,7 @@ typedef enum {
 
 
 typedef struct {
-	logic_mode_t mode; // Don't set directly, always use logic_switch_mode() to ensure mode_start_time is updated
+	logic_mode_t mode; // Use logic_switch_mode() for normal mode transitions so mode_start_time is updated; direct assignment is only for initialization/internal setup that also handles mode_start_time appropriately
 	uint32_t mode_start_time; // HAL_GetTick() timestamp of when we entered the current mode
 
 	ibus_t ibus;
