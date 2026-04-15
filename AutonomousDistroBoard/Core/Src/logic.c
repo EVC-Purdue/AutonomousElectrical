@@ -233,24 +233,7 @@ void logic_run(
 	state->output_throttle_pwm = clamp_u16(state->output_throttle_pwm, THROTTLE_PWM_LOW, THROTTLE_PWM_HIGH);
 	state->output_steering_pwm = clamp_u16(state->output_steering_pwm, STEERING_PWM_LOW, STEERING_PWM_HIGH);
 
-	// Output the PWM values
-	// bool should_throttle = state->mode == LOGIC_MODE_RUNNING;
-	// if (should_throttle) {
-	// 	if (!state->throttle_enabled) {
-	// 		pwm_enable(throttle_htim, THROTTLE_PWM_GPIO_Port, THROTTLE_PWM_Pin, THROTTLE_PWM_AF);
-	// 		state->throttle_enabled = true;
-	// 	}
-	// 	__HAL_TIM_SET_COMPARE(throttle_htim, TIM_CHANNEL_1, state->output_throttle_pwm);
-	// } else {
-	// 	if (state->throttle_enabled) {
-	// 		__HAL_TIM_SET_COMPARE(throttle_htim, TIM_CHANNEL_1, state->output_throttle_pwm);
-	// 		pwm_disable(throttle_htim, THROTTLE_PWM_GPIO_Port, THROTTLE_PWM_Pin);
-	// 		state->throttle_enabled = false;
-	// 	}
-	// }
 	__HAL_TIM_SET_COMPARE(throttle_htim, TIM_CHANNEL_1, state->output_throttle_pwm);
-	// All modes set the intended steering position
-	// And steering is powered from Distro/Control Board, not through contactor
 	__HAL_TIM_SET_COMPARE(steering_htim, TIM_CHANNEL_1, state->output_steering_pwm);
 
 	// Periodically send CAN status messages
@@ -294,33 +277,4 @@ void logic_run(
 			state->led_blink_timestamp = now;
 		}
 	}
-}
-
-
-void pwm_disable(TIM_HandleTypeDef* htim, GPIO_TypeDef* gpio_port, uint32_t gpio_pin) {
-    // Stop PWM generation
-    HAL_TIM_PWM_Stop(htim, TIM_CHANNEL_1);
-
-    // Put pin into Hi-Z (input mode)
-    GPIO_InitTypeDef GPIO_InitStruct = {0};
-    GPIO_InitStruct.Pin = gpio_pin;
-    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-
-    HAL_GPIO_Init(gpio_port, &GPIO_InitStruct);
-}
-
-void pwm_enable(TIM_HandleTypeDef* htim, GPIO_TypeDef* gpio_port, uint32_t gpio_pin, uint32_t alternate_function) {
-	// Put pin into alternate function mode for PWM output
-	GPIO_InitTypeDef GPIO_InitStruct = {0};
-	GPIO_InitStruct.Pin = gpio_pin;
-	GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-	GPIO_InitStruct.Alternate = alternate_function;
-
-	HAL_GPIO_Init(gpio_port, &GPIO_InitStruct);
-
-	// Start PWM generation
-	HAL_TIM_PWM_Start(htim, TIM_CHANNEL_1);
 }

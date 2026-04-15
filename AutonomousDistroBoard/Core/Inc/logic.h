@@ -108,11 +108,6 @@ void logic_run(
 // doesn't have a way to pass user data
 void logic_handle_control(const can_control_msg_t* cmd);
 
-void pwm_disable(TIM_HandleTypeDef* htim, GPIO_TypeDef* gpio_port, uint32_t gpio_pin);
-void pwm_enable(TIM_HandleTypeDef* htim, GPIO_TypeDef* gpio_port, uint32_t gpio_pin, uint32_t alternate_function);
-
-
-
 
 
 #endif // LOGIC_H
