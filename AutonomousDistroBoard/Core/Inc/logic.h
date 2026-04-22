@@ -20,6 +20,9 @@
 #define IBUS_CHANNEL_MODE     (4) // ~1000 = RC mode, ~2000 = autonomous mode
 #define IBUS_CHANNEL_ESTOP    (5) // ~1000 = not pressed, ~2000 = estop
 
+#define THROTTLE_STICK_IDLE (1500) // throttle stick resting value
+#define THROTTLE_STICK_MAX  (2000) // maximum throttle stick value
+
 #define ESTOP_PWM_THRESHOLD         (1500) // if the ESTOP channel goes above this value, consider the remote estop to be triggered
 #define ESTOP_RISING_DEBOUNCE       (300) // ms, require the ESTOP channel to be above the threshold for at least this long before considering the remote estop to be triggered
 #define ESTOP_ACCUMULATING_DEBOUNCE (30) // ms, when the rising ESTOP is debouncing/accumulating, require the ESTOP channel to be below the threshold for at least this long before resetting the debounce timer
@@ -72,12 +75,11 @@ typedef enum {
 
 
 typedef struct {
-	logic_mode_t mode;
+	logic_mode_t mode; // Use logic_switch_mode() for normal mode transitions so last_mode_set_time is updated; direct assignment is only for initialization/internal setup that also handles last_mode_set_time appropriately
+	uint32_t last_mode_set_time; // HAL_GetTick() timestamp of when we last set the current mode (set not switched)
 
 	ibus_t ibus;
 	uint32_t last_can_tx_time;
-
-	uint32_t start_time; // HAL_GetTick() timestamp of when the precharge sequence started
 	
 	debounce_controller_t estop_debounce; // debounce controller for the remote estop channel
 	debounce_controller_t mode_debounce; // low = RC mode, high = autonomous mode
@@ -86,34 +88,27 @@ typedef struct {
 	volatile uint16_t can_current_steering_pwm; // 1000-2000, updated by CAN RX callback
 	volatile uint32_t last_control_timestamp; // HAL_GetTick() timestamp of last received control message
 
-	uint32_t led_blink_timestamp; // HAL_GetTick() timestamp of last LED toggle
-
 	uint16_t output_throttle_pwm; // 1000-2000, the throttle PWM value that we will output (either from iBUS or CAN depending on mode)
 	uint16_t output_steering_pwm; // 1000-2000, the steering PWM value that we will output (either from iBUS or CAN depending on mode)
-	bool throttle_enabled; // whether the PWM channel for the throttle is enabled vs in input/high-impedance mode
 } logic_state_t;
 
 void logic_init(logic_state_t* state);
 
+void logic_switch_mode(logic_state_t* state, logic_mode_t new_mode, uint32_t now);
 
 // Called once in the main loop
 void logic_run(
 	logic_state_t* state,
-	UART_HandleTypeDef *sbus_huart,
-	CAN_HandleTypeDef *hcan,
-	TIM_HandleTypeDef *throttle_htim,
-	TIM_HandleTypeDef *steering_htim
+	UART_HandleTypeDef* sbus_huart,
+	CAN_HandleTypeDef* hcan,
+	TIM_HandleTypeDef* throttle_htim,
+	TIM_HandleTypeDef* steering_htim
 );
 
 // Called from CAN RX callback when a control message is received
 // Uses the global static pointer to the logic state, since the CAN callback
 // doesn't have a way to pass user data
 void logic_handle_control(const can_control_msg_t* cmd);
-
-void pwm_disable(TIM_HandleTypeDef* htim, GPIO_TypeDef* gpio_port, uint32_t gpio_pin);
-void pwm_enable(TIM_HandleTypeDef* htim, GPIO_TypeDef* gpio_port, uint32_t gpio_pin, uint32_t alternate_function);
-
-
 
 
 

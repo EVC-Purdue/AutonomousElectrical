@@ -13,7 +13,7 @@ static logic_state_t* g_logic_state_ptr = NULL;
 
 void logic_init(logic_state_t* state) {
 	state->mode = LOGIC_MODE_STARTING;
-	state->start_time = HAL_GetTick();
+	state->last_mode_set_time = HAL_GetTick();
 	
 	debounce_controller_init(
 		&state->estop_debounce,
@@ -34,12 +34,11 @@ void logic_init(logic_state_t* state) {
 	state->last_can_tx_time = 0;
 
 	state->can_current_throttle_pwm = THROTTLE_PWM_LOW;
-	state->can_current_steering_pwm = (STEERING_PWM_LOW + STEERING_PWM_HIGH) / 2;
+	state->can_current_steering_pwm = STEERING_PWM_CENTER;
 	state->last_control_timestamp = 0;
 
 	state->output_throttle_pwm = THROTTLE_PWM_LOW;
-	state->output_steering_pwm = (STEERING_PWM_LOW + STEERING_PWM_HIGH) / 2;
-	state->throttle_enabled = true; // HAL init sets up the PWM
+	state->output_steering_pwm = STEERING_PWM_CENTER;
 
 	g_logic_state_ptr = state;
 }
@@ -54,12 +53,21 @@ void logic_handle_control(const can_control_msg_t* cmd) {
 	g_logic_state_ptr->last_control_timestamp = HAL_GetTick();
 }
 
+void logic_switch_mode(logic_state_t* state, logic_mode_t new_mode, uint32_t now) {
+	if (state == NULL) {
+		return;
+	}
+
+	state->mode = new_mode;
+	state->last_mode_set_time = now;
+}
+
 void logic_run(
 	logic_state_t* state,
-	UART_HandleTypeDef *sbus_huart,
-	CAN_HandleTypeDef *hcan,
-	TIM_HandleTypeDef *throttle_htim,
-	TIM_HandleTypeDef *steering_htim
+	UART_HandleTypeDef* sbus_huart,
+	CAN_HandleTypeDef* hcan,
+	TIM_HandleTypeDef* throttle_htim,
+	TIM_HandleTypeDef* steering_htim
 ) {
 	// Process iBUS data
 	ibus_process(&state->ibus, sbus_huart);
@@ -68,7 +76,7 @@ void logic_run(
 
 	// All states: Check for RC connection timeout
 	if (!ibus_is_connected(&state->ibus, now, RC_CONNECTION_TIMEOUT)) {
-		state->mode = LOGIC_MODE_RC_DISCONNECTED;
+		logic_switch_mode(state, LOGIC_MODE_RC_DISCONNECTED, now);
 	} else {
 		// All states: update RC debounce controllers
 		uint16_t estop_channel_value = state->ibus.channels[IBUS_CHANNEL_ESTOP];
@@ -82,9 +90,8 @@ void logic_run(
 		// All states: check remote estop
 		bool estop_debounced_high = debounce_controller_get_state(&state->estop_debounce);
 		if (estop_debounced_high) {
-			state->mode = LOGIC_MODE_ESTOPPED;
+			logic_switch_mode(state, LOGIC_MODE_ESTOPPED, now);
 			// Note: if it was high and remains high, we want to continue to force
-			// state->mode = LOGIC_MODE_ESTOPPED just as a safety measure
 		}
 	}
 
@@ -95,8 +102,8 @@ void logic_run(
 			HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_RESET);
 			HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_RESET);
 
-			if (util_has_elapsed(now, state->start_time, PRECHARGE_START_DELAY)) {
-				state->mode = LOGIC_MODE_PRECHARGING;
+			if (util_has_elapsed(now, state->last_mode_set_time, PRECHARGE_START_DELAY)) {
+				logic_switch_mode(state, LOGIC_MODE_PRECHARGING, now);
 			}
 			break;
 		}
@@ -105,9 +112,8 @@ void logic_run(
 			HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_SET);
 			HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_RESET);
 
-			uint32_t total_delay = PRECHARGE_START_DELAY + PRECHARGE_DURATION;
-			if (util_has_elapsed(now, state->start_time, total_delay)) {
-				state->mode = LOGIC_MODE_CONTACTOR_CLOSING;
+			if (util_has_elapsed(now, state->last_mode_set_time, PRECHARGE_DURATION)) {
+				logic_switch_mode(state, LOGIC_MODE_CONTACTOR_CLOSING, now);
 			}
 			break;
 		}
@@ -116,9 +122,8 @@ void logic_run(
 			HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_SET);
 			HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_SET);
 
-			uint32_t total_delay = PRECHARGE_START_DELAY + PRECHARGE_DURATION + CONTACTOR_CLOSED_DELAY;
-			if (util_has_elapsed(now, state->start_time, total_delay)) {
-				state->mode = LOGIC_MODE_RUNNING;
+			if (util_has_elapsed(now, state->last_mode_set_time, CONTACTOR_CLOSED_DELAY)) {
+				logic_switch_mode(state, LOGIC_MODE_RUNNING, now);
 			}
 			break;
 		}
@@ -141,7 +146,7 @@ void logic_run(
 				} else {
 					// If we have not received a control message recently, consider the CAN connection to
 					// be lost and switch to CAN_DISCONNECTED mode
-					state->mode = LOGIC_MODE_CAN_DISCONNECTED;
+					logic_switch_mode(state, LOGIC_MODE_CAN_DISCONNECTED, now);
 					state->output_throttle_pwm = THROTTLE_PWM_LOW;
 					state->output_steering_pwm = STEERING_PWM_CENTER;
 				}
@@ -151,8 +156,8 @@ void logic_run(
 				uint16_t ibus_throttle_pwm = state->ibus.channels[IBUS_CHANNEL_THROTTLE];
 				uint16_t ibus_steering_pwm = state->ibus.channels[IBUS_CHANNEL_STEERING];
 
-				state->output_throttle_pwm = map_u16(ibus_throttle_pwm, 1500, 2000, THROTTLE_PWM_LOW, THROTTLE_PWM_HIGH);
-				state->output_steering_pwm = ibus_steering_pwm;
+				state->output_throttle_pwm = map_u16(ibus_throttle_pwm, THROTTLE_STICK_IDLE, THROTTLE_STICK_MAX, THROTTLE_PWM_LOW, THROTTLE_PWM_HIGH);
+				state->output_steering_pwm = ibus_steering_pwm; // iBUS steering is already in the form of a PWM value, just pass it through directly
 			}
 
 
@@ -167,8 +172,7 @@ void logic_run(
 
 			bool estop_debounced_high = debounce_controller_get_state(&state->estop_debounce);
 			if (!estop_debounced_high) {
-				state->mode = LOGIC_MODE_RECOVERING;
-				state->start_time = now;
+				logic_switch_mode(state, LOGIC_MODE_RECOVERING, now);
 			}
 			break;
 		}
@@ -180,8 +184,7 @@ void logic_run(
 			state->output_steering_pwm = STEERING_PWM_CENTER;
 
 			if (ibus_is_connected(&state->ibus, now, RC_CONNECTION_TIMEOUT)) {
-				state->mode = LOGIC_MODE_RECOVERING;
-				state->start_time = now;
+				logic_switch_mode(state, LOGIC_MODE_RECOVERING, now);
 			}
 			break;
 		}
@@ -203,8 +206,7 @@ void logic_run(
 
 			if ((autonomous_mode && can_connection_ok)
 				|| (!autonomous_mode && ibus_connection_ok)) {
-				state->mode = LOGIC_MODE_RECOVERING;
-				state->start_time = now;
+				logic_switch_mode(state, LOGIC_MODE_RECOVERING, now);
 			}
 			break;
 		}
@@ -215,9 +217,8 @@ void logic_run(
 			state->output_throttle_pwm = THROTTLE_PWM_LOW;
 			state->output_steering_pwm = STEERING_PWM_CENTER;
 
-			if (util_has_elapsed(now, state->start_time, RECOVERING_DELAY)) {
-				state->mode = LOGIC_MODE_STARTING;
-				state->start_time = now;
+			if (util_has_elapsed(now, state->last_mode_set_time, RECOVERING_DELAY)) {
+				logic_switch_mode(state, LOGIC_MODE_STARTING, now);
 			}
 
 			break;
@@ -228,24 +229,7 @@ void logic_run(
 	state->output_throttle_pwm = clamp_u16(state->output_throttle_pwm, THROTTLE_PWM_LOW, THROTTLE_PWM_HIGH);
 	state->output_steering_pwm = clamp_u16(state->output_steering_pwm, STEERING_PWM_LOW, STEERING_PWM_HIGH);
 
-	// Output the PWM values
-	// bool should_throttle = state->mode == LOGIC_MODE_RUNNING;
-	// if (should_throttle) {
-	// 	if (!state->throttle_enabled) {
-	// 		pwm_enable(throttle_htim, THROTTLE_PWM_GPIO_Port, THROTTLE_PWM_Pin, THROTTLE_PWM_AF);
-	// 		state->throttle_enabled = true;
-	// 	}
-	// 	__HAL_TIM_SET_COMPARE(throttle_htim, TIM_CHANNEL_1, state->output_throttle_pwm);
-	// } else {
-	// 	if (state->throttle_enabled) {
-	// 		__HAL_TIM_SET_COMPARE(throttle_htim, TIM_CHANNEL_1, state->output_throttle_pwm);
-	// 		pwm_disable(throttle_htim, THROTTLE_PWM_GPIO_Port, THROTTLE_PWM_Pin);
-	// 		state->throttle_enabled = false;
-	// 	}
-	// }
 	__HAL_TIM_SET_COMPARE(throttle_htim, TIM_CHANNEL_1, state->output_throttle_pwm);
-	// All modes set the intended steering position
-	// And steering is powered from Distro/Control Board, not through contactor
 	__HAL_TIM_SET_COMPARE(steering_htim, TIM_CHANNEL_1, state->output_steering_pwm);
 
 	// Periodically send CAN status messages
@@ -284,38 +268,7 @@ void logic_run(
 		// Solid on
 		HAL_GPIO_WritePin(LED_OUT_GPIO_Port, LED_OUT_Pin, GPIO_PIN_SET);
 	} else {
-		if (util_has_elapsed(now, state->led_blink_timestamp, led_period)) {
-			HAL_GPIO_TogglePin(LED_OUT_GPIO_Port, LED_OUT_Pin);
-			state->led_blink_timestamp = now;
-		}
+		bool led_on = (now / led_period) % 2 == 0;
+		HAL_GPIO_WritePin(LED_OUT_GPIO_Port, LED_OUT_Pin, led_on ? GPIO_PIN_SET : GPIO_PIN_RESET);
 	}
-}
-
-
-void pwm_disable(TIM_HandleTypeDef* htim, GPIO_TypeDef* gpio_port, uint32_t gpio_pin) {
-    // Stop PWM generation
-    HAL_TIM_PWM_Stop(htim, TIM_CHANNEL_1);
-
-    // Put pin into Hi-Z (input mode)
-    GPIO_InitTypeDef GPIO_InitStruct = {0};
-    GPIO_InitStruct.Pin = gpio_pin;
-    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-
-    HAL_GPIO_Init(gpio_port, &GPIO_InitStruct);
-}
-
-void pwm_enable(TIM_HandleTypeDef* htim, GPIO_TypeDef* gpio_port, uint32_t gpio_pin, uint32_t alternate_function) {
-	// Put pin into alternate function mode for PWM output
-	GPIO_InitTypeDef GPIO_InitStruct = {0};
-	GPIO_InitStruct.Pin = gpio_pin;
-	GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-	GPIO_InitStruct.Alternate = alternate_function;
-
-	HAL_GPIO_Init(gpio_port, &GPIO_InitStruct);
-
-	// Start PWM generation
-	HAL_TIM_PWM_Start(htim, TIM_CHANNEL_1);
 }
