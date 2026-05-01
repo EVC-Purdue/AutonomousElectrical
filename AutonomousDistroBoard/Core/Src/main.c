@@ -105,13 +105,13 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_DMA_Init();
+  MX_CAN2_Init();
   MX_UART5_Init();
   MX_TIM1_Init();
   MX_TIM11_Init();
   MX_USART3_UART_Init();
   MX_USB_OTG_FS_PCD_Init();
   MX_CAN1_Init();
-  MX_CAN2_Init();
   /* USER CODE BEGIN 2 */
   // Initialize logic state
   logic_init(&g_logic_state);
