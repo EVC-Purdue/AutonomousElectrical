@@ -146,6 +146,11 @@ void logic_run(
 				} else {
 					// If we have not received a control message recently, consider the CAN connection to
 					// be lost and switch to CAN_DISCONNECTED mode
+					// UPDATE: we don't actually want to use CAN_DISCONNECTED
+					// In manual driving mode, commands are only sent when there is a change in
+					// throttle/steering, not at a fixed rate.
+					// In the long term, this should prob be handled by a heart beat sent by e_comms
+					// but I don't want to add that complexity now
 					// logic_switch_mode(state, LOGIC_MODE_CAN_DISCONNECTED, now);
 					state->output_throttle_pwm = THROTTLE_PWM_LOW;
 					state->output_steering_pwm = STEERING_PWM_CENTER;
