@@ -6,10 +6,7 @@
 #include "logic.h"
 #include "util.h"
 
-volatile int x = 0;
-
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
-	x++;
     if (hcan->Instance == CAN_BUS) {
 		CAN_RxHeaderTypeDef rx_header;
 		uint8_t rx_data[8];
