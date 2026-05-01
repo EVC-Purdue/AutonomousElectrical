@@ -146,7 +146,7 @@ void logic_run(
 				} else {
 					// If we have not received a control message recently, consider the CAN connection to
 					// be lost and switch to CAN_DISCONNECTED mode
-					logic_switch_mode(state, LOGIC_MODE_CAN_DISCONNECTED, now);
+					// logic_switch_mode(state, LOGIC_MODE_CAN_DISCONNECTED, now);
 					state->output_throttle_pwm = THROTTLE_PWM_LOW;
 					state->output_steering_pwm = STEERING_PWM_CENTER;
 				}
