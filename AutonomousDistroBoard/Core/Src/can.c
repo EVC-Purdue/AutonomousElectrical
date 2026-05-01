@@ -6,7 +6,6 @@
 #include "logic.h"
 #include "util.h"
 
-
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
     if (hcan->Instance == CAN_BUS) {
 		CAN_RxHeaderTypeDef rx_header;
