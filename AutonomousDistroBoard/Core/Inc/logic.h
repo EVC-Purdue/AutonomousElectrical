@@ -33,7 +33,7 @@
 #define MODE_ACCUMULATING_DEBOUNCE_MS (50) // ms, when the rising MODE is debouncing/accumulating, require the MODE channel to be below the threshold for at least this long before resetting the debounce timer
 
 #define CAN_TX_PERIOD  (10) // ms
-#define CAN_RX_TIMEOUT (500) // ms
+#define CAN_RX_HB_TIMEOUT (500) // ms, for the heartbeat message
 
 #define RC_CONNECTION_TIMEOUT (100) // ms, if we did not get a valid iBUS frame within this time, consider the RC connection to be lost
 
