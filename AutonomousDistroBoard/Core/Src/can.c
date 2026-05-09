@@ -28,7 +28,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
 
 
 can_control_msg_t parse_can_control(const uint8_t* data) {
-	can_control_msg_t msg;
+	can_control_msg_t msg = {0};
 	msg.throttle = data[0] | (data[1] << 8);
 	msg.steering = data[2] | (data[3] << 8);
 	return msg;
