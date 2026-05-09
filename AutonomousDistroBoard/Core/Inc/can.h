@@ -41,6 +41,16 @@ typedef struct {
 } can_status_msg_t;
 
 
+// - ID = `0x102` - **E_Comms heartbeat** (RX)
+// 	- Byte 0: E_Comms heartbeat counter (uint8_t)
+// 	- Byte 1-7: reserved / future use
+#define CAN_ID_HEARTBEAT (0x102)
+#define CAN_HEARTBEAT_MIN_BYTES (1)
+typedef struct {
+	uint8_t counter; // E_Comms heartbeat counter
+} can_heartbeat_msg_t;
+
+
 can_control_msg_t parse_can_control(const uint8_t* data);
 void send_can_status(const can_status_msg_t* status, CAN_HandleTypeDef* hcan);
 
