@@ -88,6 +88,9 @@ typedef struct {
 	volatile uint16_t can_current_steering_pwm; // 1000-2000, updated by CAN RX callback
 	volatile uint32_t last_control_timestamp; // HAL_GetTick() timestamp of last received control message
 
+	volatile uint8_t heartbeat_counter; // updated by CAN RX callback when we receive a heartbeat message from E_Comms
+	volatile uint32_t last_heartbeat_timestamp; // HAL_GetTick() timestamp of last received heartbeat message from E_Comms
+
 	uint16_t output_throttle_pwm; // 1000-2000, the throttle PWM value that we will output (either from iBUS or CAN depending on mode)
 	uint16_t output_steering_pwm; // 1000-2000, the steering PWM value that we will output (either from iBUS or CAN depending on mode)
 } logic_state_t;
@@ -109,6 +112,11 @@ void logic_run(
 // Uses the global static pointer to the logic state, since the CAN callback
 // doesn't have a way to pass user data
 void logic_handle_control(const can_control_msg_t* cmd);
+
+// Called from CAN RX callback when a heartbeat message is received
+// Uses the global static pointer to the logic state, since the CAN callback
+// doesn't have a way to pass user data
+void logic_handle_heartbeat(const can_heartbeat_msg_t* heartbeat);
 
 
 

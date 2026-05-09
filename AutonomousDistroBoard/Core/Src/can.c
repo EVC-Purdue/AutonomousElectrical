@@ -20,7 +20,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
 			logic_handle_control(&cmd);
 		} else if (can_is_able_to_parse(&rx_header, CAN_ID_HEARTBEAT, CAN_HEARTBEAT_MIN_BYTES)) {
 			can_heartbeat_msg_t heartbeat = parse_can_heartbeat(rx_data);
-			// logic_handle_heartbeat(&heartbeat); // TODO: implement
+			logic_handle_heartbeat(&heartbeat);
 		}
     }
 }

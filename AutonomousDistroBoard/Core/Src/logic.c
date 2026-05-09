@@ -53,6 +53,15 @@ void logic_handle_control(const can_control_msg_t* cmd) {
 	g_logic_state_ptr->last_control_timestamp = HAL_GetTick();
 }
 
+void logic_handle_heartbeat(const can_heartbeat_msg_t* heartbeat) {
+	if (g_logic_state_ptr == NULL) {
+		return;
+	}
+
+	g_logic_state_ptr->heartbeat_counter = heartbeat->counter;
+	g_logic_state_ptr->last_heartbeat_timestamp = HAL_GetTick();
+}
+
 void logic_switch_mode(logic_state_t* state, logic_mode_t new_mode, uint32_t now) {
 	if (state == NULL) {
 		return;
