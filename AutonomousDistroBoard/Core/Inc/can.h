@@ -51,6 +51,8 @@ typedef struct {
 } can_heartbeat_msg_t;
 
 
+bool can_is_able_to_parse(const CAN_RxHeaderTypeDef* rx_header, uint32_t expected_id, uint8_t expected_min_dlc);
+
 can_control_msg_t parse_can_control(const uint8_t* data);
 can_heartbeat_msg_t parse_can_heartbeat(const uint8_t* data);
 

@@ -15,23 +15,21 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
 			return;
 		}
 
-		if ((rx_header.IDE == CAN_ID_STD) &&
-			(rx_header.RTR == CAN_RTR_DATA) &&
-			(rx_header.StdId == CAN_ID_CONTROL) &&
-			(rx_header.DLC >= CAN_CONTROL_MIN_BYTES))
-		{
-
+		if (can_is_able_to_parse(&rx_header, CAN_ID_CONTROL, CAN_CONTROL_MIN_BYTES)) {
 			can_control_msg_t cmd = parse_can_control(rx_data);
 			logic_handle_control(&cmd);
-		} else if ((rx_header.IDE == CAN_ID_STD) &&
-			(rx_header.RTR == CAN_RTR_DATA) &&
-			(rx_header.StdId == CAN_ID_HEARTBEAT) &&
-			(rx_header.DLC >= CAN_HEARTBEAT_MIN_BYTES))
-		{
+		} else if (can_is_able_to_parse(&rx_header, CAN_ID_HEARTBEAT, CAN_HEARTBEAT_MIN_BYTES)) {
 			can_heartbeat_msg_t heartbeat = parse_can_heartbeat(rx_data);
 			// logic_handle_heartbeat(&heartbeat); // TODO: implement
 		}
     }
+}
+
+bool can_is_able_to_parse(const CAN_RxHeaderTypeDef* rx_header, uint32_t expected_id, uint8_t expected_min_dlc) {
+	return (rx_header->IDE == CAN_ID_STD) &&
+		   (rx_header->RTR == CAN_RTR_DATA) &&
+		   (rx_header->StdId == expected_id) &&
+		   (rx_header->DLC >= expected_min_dlc);
 }
 
 
