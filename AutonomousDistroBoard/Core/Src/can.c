@@ -34,6 +34,13 @@ can_control_msg_t parse_can_control(const uint8_t* data) {
 	return msg;
 }
 
+can_heartbeat_msg_t parse_can_heartbeat(const uint8_t* data) {
+	can_heartbeat_msg_t msg = {0};
+	msg.counter = data[0];
+	return msg;
+}
+
+
 void send_can_status(const can_status_msg_t* status, CAN_HandleTypeDef* hcan) {
 	CAN_TxHeaderTypeDef tx_header;
 	uint8_t tx_data[8] = {0};

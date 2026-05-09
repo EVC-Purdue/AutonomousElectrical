@@ -52,6 +52,8 @@ typedef struct {
 
 
 can_control_msg_t parse_can_control(const uint8_t* data);
+can_heartbeat_msg_t parse_can_heartbeat(const uint8_t* data);
+
 void send_can_status(const can_status_msg_t* status, CAN_HandleTypeDef* hcan);
 
 uint16_t can_throttle_to_pwm(const can_control_msg_t* cmd);
