@@ -18,6 +18,9 @@ Autonomous Project electrical stack code
 	- Byte 1-2: throttle PWM (uint16_t, little endian), the actual PWM value being sent to the ESC for throttle (1000-2000)
 	- Byte 3-4: steering PWM (uint16_t, little endian), the actual PWM value being sent to the servo for steering (1000-2000)
 	- Byte 5-7: reserved / future use
+- ID = `0x102` - **E_Comms heartbeat** (RX)
+	- Byte 0: E_Comms heartbeat counter (uint8_t)
+	- Byte 1-7: reserved / future use
 
 ### RC configuration
 
