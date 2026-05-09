@@ -210,7 +210,7 @@ void logic_run(
 			debounce_controller_update(&state->mode_debounce, mode_raw_high, now);
 
 			bool autonomous_mode = debounce_controller_get_state(&state->mode_debounce);
-			bool can_connection_ok = !util_has_elapsed(now, state->last_control_timestamp, CAN_RX_HB_TIMEOUT);
+			bool can_connection_ok = !util_has_elapsed(now, state->last_heartbeat_timestamp, CAN_RX_HB_TIMEOUT);
 			bool ibus_connection_ok = ibus_is_connected(&state->ibus, now, RC_CONNECTION_TIMEOUT);
 
 			if ((autonomous_mode && can_connection_ok)
