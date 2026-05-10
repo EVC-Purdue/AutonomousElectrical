@@ -53,6 +53,15 @@ void logic_handle_control(const can_control_msg_t* cmd) {
 	g_logic_state_ptr->last_control_timestamp = HAL_GetTick();
 }
 
+void logic_handle_heartbeat(const can_heartbeat_msg_t* heartbeat) {
+	if (g_logic_state_ptr == NULL) {
+		return;
+	}
+
+	g_logic_state_ptr->heartbeat_counter = heartbeat->counter;
+	g_logic_state_ptr->last_heartbeat_timestamp = HAL_GetTick();
+}
+
 void logic_switch_mode(logic_state_t* state, logic_mode_t new_mode, uint32_t now) {
 	if (state == NULL) {
 		return;
@@ -138,20 +147,15 @@ void logic_run(
 
 			// In autonomous mode, ignore iBUS throttle and steering and only use CAN commands
 			if (autonomous_mode) {
-				if (!util_has_elapsed(now, state->last_control_timestamp, CAN_RX_TIMEOUT)) {
-					// If we have received a control message recently, consider the CAN connection to be
+				if (!util_has_elapsed(now, state->last_heartbeat_timestamp, CAN_RX_HB_TIMEOUT)) {
+					// If we have received a heartbeat message recently, consider the CAN connection to be
 					// healthy and use CAN commands for throttle and steering
 					state->output_throttle_pwm = state->can_current_throttle_pwm;
 					state->output_steering_pwm = state->can_current_steering_pwm;
 				} else {
-					// If we have not received a control message recently, consider the CAN connection to
+					// If we have not received a heartbeat message recently, consider the CAN connection to
 					// be lost and switch to CAN_DISCONNECTED mode
-					// UPDATE: we don't actually want to use CAN_DISCONNECTED
-					// In manual driving mode, commands are only sent when there is a change in
-					// throttle/steering, not at a fixed rate.
-					// In the long term, this should prob be handled by a heart beat sent by e_comms
-					// but I don't want to add that complexity now
-					// logic_switch_mode(state, LOGIC_MODE_CAN_DISCONNECTED, now);
+					logic_switch_mode(state, LOGIC_MODE_CAN_DISCONNECTED, now);
 					state->output_throttle_pwm = THROTTLE_PWM_LOW;
 					state->output_steering_pwm = STEERING_PWM_CENTER;
 				}
@@ -206,7 +210,7 @@ void logic_run(
 			debounce_controller_update(&state->mode_debounce, mode_raw_high, now);
 
 			bool autonomous_mode = debounce_controller_get_state(&state->mode_debounce);
-			bool can_connection_ok = !util_has_elapsed(now, state->last_control_timestamp, CAN_RX_TIMEOUT);
+			bool can_connection_ok = !util_has_elapsed(now, state->last_heartbeat_timestamp, CAN_RX_HB_TIMEOUT);
 			bool ibus_connection_ok = ibus_is_connected(&state->ibus, now, RC_CONNECTION_TIMEOUT);
 
 			if ((autonomous_mode && can_connection_ok)

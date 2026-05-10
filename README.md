@@ -4,6 +4,10 @@ Autonomous Project electrical stack code
 
 ## Autonomous Control/Distro Board
 
+### State Machine
+
+![State machine diagram](./Autonomous%20Electrical%20State%20Machine.drawio.png)
+
 ### CAN messages
 
 - ID = `0x100` - **Control commands** (RX)
@@ -18,6 +22,9 @@ Autonomous Project electrical stack code
 	- Byte 1-2: throttle PWM (uint16_t, little endian), the actual PWM value being sent to the ESC for throttle (1000-2000)
 	- Byte 3-4: steering PWM (uint16_t, little endian), the actual PWM value being sent to the servo for steering (1000-2000)
 	- Byte 5-7: reserved / future use
+- ID = `0x102` - **E_Comms heartbeat** (RX)
+	- Byte 0: E_Comms heartbeat counter (uint8_t)
+	- Byte 1-7: reserved / future use
 
 ### RC configuration
 
@@ -78,13 +85,6 @@ Autonomous Project electrical stack code
     - SWDIO: `PA13`
     - SWCLK: `PA14`
     - OSC_IN/OUT: `PH0` / `PH1` (8MHz HSE)
-
-### State Machine
-
-<img width="779" height="2021" alt="Autonomous Distro-Control Board
-state machine"
-src="https://github.com/user-attachments/assets/a88d2ef2-eab9-4c80-acc3-6d577d6a04e4"
-/>
 
 ## Autonomous Nucleo
 

@@ -14,25 +14,38 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
 		if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &rx_header, rx_data) != HAL_OK) {
 			return;
 		}
-		if ((rx_header.IDE == CAN_ID_STD) &&
-			(rx_header.RTR == CAN_RTR_DATA) &&
-			(rx_header.StdId == CAN_ID_CONTROL) &&
-			(rx_header.DLC >= CAN_CONTROL_MIN_BYTES))
-		{
 
+		if (can_is_able_to_parse(&rx_header, CAN_ID_CONTROL, CAN_CONTROL_MIN_BYTES)) {
 			can_control_msg_t cmd = parse_can_control(rx_data);
 			logic_handle_control(&cmd);
+		} else if (can_is_able_to_parse(&rx_header, CAN_ID_HEARTBEAT, CAN_HEARTBEAT_MIN_BYTES)) {
+			can_heartbeat_msg_t heartbeat = parse_can_heartbeat(rx_data);
+			logic_handle_heartbeat(&heartbeat);
 		}
     }
 }
 
+bool can_is_able_to_parse(const CAN_RxHeaderTypeDef* rx_header, uint32_t expected_id, uint8_t expected_min_dlc) {
+	return (rx_header->IDE == CAN_ID_STD) &&
+		   (rx_header->RTR == CAN_RTR_DATA) &&
+		   (rx_header->StdId == expected_id) &&
+		   (rx_header->DLC >= expected_min_dlc);
+}
+
 
 can_control_msg_t parse_can_control(const uint8_t* data) {
-	can_control_msg_t msg;
+	can_control_msg_t msg = {0};
 	msg.throttle = data[0] | (data[1] << 8);
 	msg.steering = data[2] | (data[3] << 8);
 	return msg;
 }
+
+can_heartbeat_msg_t parse_can_heartbeat(const uint8_t* data) {
+	can_heartbeat_msg_t msg = {0};
+	msg.counter = data[0];
+	return msg;
+}
+
 
 void send_can_status(const can_status_msg_t* status, CAN_HandleTypeDef* hcan) {
 	CAN_TxHeaderTypeDef tx_header;
