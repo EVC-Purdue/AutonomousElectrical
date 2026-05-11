@@ -2,13 +2,12 @@
 
 Autonomous Project electrical stack code
 
-## Autonomous Control/Distro Board
 
-### State Machine
+## State Machine
 
 ![State machine diagram](./Autonomous%20Electrical%20State%20Machine.drawio.png)
 
-### CAN messages
+## CAN messages
 
 - ID = `0x100` - **Control commands** (RX)
 	- Byte 0-1: throttle (uint16_t, little endian), 0-1000, where 1000 = full throttle
@@ -26,7 +25,7 @@ Autonomous Project electrical stack code
 	- Byte 0: E_Comms heartbeat counter (uint8_t)
 	- Byte 1-7: reserved / future use
 
-### RC configuration
+## RC configuration
 
 - Throttle
 	- Channel: 2 (index 1)
@@ -47,8 +46,7 @@ Autonomous Project electrical stack code
 	- Not pressed: 1000 microseconds pulse width (not activated position)
 	- Pressed: 2000 microseconds pulse width (activated position)
 
-
-### Pin Definitions 
+## Pin Definitions 
 
 - **CAN Bus (CAN2):**
     - RX: `PB5`
