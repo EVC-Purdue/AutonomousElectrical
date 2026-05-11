@@ -9,6 +9,12 @@
 
 #define CAN_BUS (CAN2)
 
+#define CAN_VESC_ID (0xFF) // ID_ALL
+#define CAN_VESC_SET_RPM_MSG_NUM (3)
+#define CAN_VESC_STATUS_1_MSG_NUM (9)
+
+#define CAN_VESC_MSG_NUM_TO_EXT_ID(msg_num) (((uint32_t)(msg_num) << 8) | ((uint32_t)(CAN_VESC_ID)))
+
 
 // - ID = `0x100` - **Control commands** (RX)
 // 	- Byte 0-1: throttle (uint16_t, little endian), 0-1000, where 1000 = full throttle
