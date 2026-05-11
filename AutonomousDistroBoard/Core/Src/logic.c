@@ -68,6 +68,15 @@ void logic_handle_heartbeat(const can_heartbeat_msg_t* heartbeat) {
 	g_logic_state_ptr->last_heartbeat_timestamp = HAL_GetTick();
 }
 
+void logic_handle_vesc_status_1(const can_vesc_status_1_msg_t* vesc_status_1) {
+	if (g_logic_state_ptr == NULL) {
+		return;
+	}
+
+	g_logic_state_ptr->vesc_current_rpm = vesc_status_1->rpm;
+	g_logic_state_ptr->vesc_last_status_timestamp = HAL_GetTick();
+}
+
 void logic_switch_mode(logic_state_t* state, logic_mode_t new_mode, uint32_t now) {
 	if (state == NULL) {
 		return;

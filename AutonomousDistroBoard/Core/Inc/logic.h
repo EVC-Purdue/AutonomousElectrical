@@ -121,6 +121,11 @@ void logic_handle_control(const can_control_msg_t* cmd);
 // doesn't have a way to pass user data
 void logic_handle_heartbeat(const can_heartbeat_msg_t* heartbeat);
 
+// Called from CAN RX callback when a VESC status 1 message is received
+// Uses the global static pointer to the logic state, since the CAN callback
+// doesn't have a way to pass user data
+void logic_handle_vesc_status_1(const can_vesc_status_1_msg_t* vesc_status_1);
+
 
 
 #endif // LOGIC_H

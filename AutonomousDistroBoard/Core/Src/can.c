@@ -23,7 +23,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
 			logic_handle_heartbeat(&heartbeat);
 		} else if (can_is_able_to_parse(&rx_header, CAN_VESC_STATUS_1_IS_EXT_ID, CAN_ID_VESC_STATUS_1, CAN_VESC_STATUS_1_MIN_BYTES)) {
 			can_vesc_status_1_msg_t vesc_status_1 = parse_can_vesc_status_1(rx_data);
-			// logic_handle_vesc_status_1(&vesc_status_1);
+			logic_handle_vesc_status_1(&vesc_status_1);
 		}
     }
 }
