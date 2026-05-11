@@ -74,6 +74,18 @@ typedef struct {
 	int16_t duty_cycle; // in 0.001, so 1000 = 100%
 } can_vesc_status_1_msg_t;
 
+
+// ID = `CAN_VESC_MSG_NUM_TO_EXT_ID(3 = CAN_VESC_SET_RPM_MSG_NUM)` (ext id) - **VESC set RPM** (TX)
+// 	- Byte 0-3: desired VESC RPM (BE)
+// 	- Byte 4-7: reserved
+#define CAN_ID_VESC_SET_RPM (CAN_VESC_MSG_NUM_TO_EXT_ID(CAN_VESC_SET_RPM_MSG_NUM))
+#define CAN_VESC_SET_RPM_IS_EXT_ID (true)
+#define CAN_VESC_SET_RPM_MIN_BYTES (4)
+typedef struct {
+	int32_t rpm;
+} can_vesc_set_rpm_msg_t;
+
+
 bool can_is_able_to_parse(const CAN_RxHeaderTypeDef* rx_header, bool is_ext_id, uint32_t expected_id, uint8_t expected_min_dlc);
 
 can_control_msg_t parse_can_control(const uint8_t* data);
@@ -81,6 +93,7 @@ can_heartbeat_msg_t parse_can_heartbeat(const uint8_t* data);
 can_vesc_status_1_msg_t parse_can_vesc_status_1(const uint8_t* data);
 
 void send_can_status(const can_status_msg_t* status, CAN_HandleTypeDef* hcan);
+void send_can_vesc_set_rpm(const can_vesc_set_rpm_msg_t* msg, CAN_HandleTypeDef* hcan);
 
 uint16_t can_throttle_to_pwm(const can_control_msg_t* cmd);
 uint16_t can_steering_to_pwm(const can_control_msg_t* cmd);

@@ -93,6 +93,29 @@ void send_can_status(const can_status_msg_t* status, CAN_HandleTypeDef* hcan) {
 	HAL_CAN_AddTxMessage(hcan, &tx_header, tx_data, &tx_mailbox);
 }
 
+void send_can_vesc_set_rpm(const can_vesc_set_rpm_msg_t* msg, CAN_HandleTypeDef* hcan) {
+	CAN_TxHeaderTypeDef tx_header;
+	uint8_t tx_data[8] = {0};
+
+	tx_header.StdId = 0;
+	tx_header.ExtId = CAN_ID_VESC_SET_RPM;
+	tx_header.RTR = CAN_RTR_DATA;
+	tx_header.IDE = CAN_ID_EXT;
+	tx_header.DLC = 8;
+
+	tx_data[0] = (msg->rpm >> 24) & 0xFF;
+	tx_data[1] = (msg->rpm >> 16) & 0xFF;
+	tx_data[2] = (msg->rpm >> 8) & 0xFF;
+	tx_data[3] = msg->rpm & 0xFF;
+	tx_data[4] = 0;
+	tx_data[5] = 0;
+	tx_data[6] = 0;
+	tx_data[7] = 0;
+
+	uint32_t tx_mailbox;
+	HAL_CAN_AddTxMessage(hcan, &tx_header, tx_data, &tx_mailbox);
+}
+
 
 uint16_t can_throttle_to_pwm(const can_control_msg_t* cmd) {
 	return map_u16(cmd->throttle, 0, CAN_THROTTLE_MAX, THROTTLE_PWM_LOW, THROTTLE_PWM_HIGH);
