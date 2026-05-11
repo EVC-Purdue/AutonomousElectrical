@@ -15,11 +15,15 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
 			return;
 		}
 
+		if (can_is_able_to_parse(&rx_header, CAN_CONTROL_IS_EXT_ID, CAN_ID_CONTROL, CAN_CONTROL_MIN_BYTES)) {
 			can_control_msg_t cmd = parse_can_control(rx_data);
 			logic_handle_control(&cmd);
 		} else if (can_is_able_to_parse(&rx_header, CAN_HEARTBEAT_IS_EXT_ID, CAN_ID_HEARTBEAT, CAN_HEARTBEAT_MIN_BYTES)) {
 			can_heartbeat_msg_t heartbeat = parse_can_heartbeat(rx_data);
 			logic_handle_heartbeat(&heartbeat);
+		} else if (can_is_able_to_parse(&rx_header, CAN_VESC_STATUS_1_IS_EXT_ID, CAN_ID_VESC_STATUS_1, CAN_VESC_STATUS_1_MIN_BYTES)) {
+			can_vesc_status_1_msg_t vesc_status_1 = parse_can_vesc_status_1(rx_data);
+			// logic_handle_vesc_status_1(&vesc_status_1);
 		}
     }
 }
@@ -50,6 +54,21 @@ can_heartbeat_msg_t parse_can_heartbeat(const uint8_t* data) {
 	return msg;
 }
 
+can_vesc_status_1_msg_t parse_can_vesc_status_1(const uint8_t* data) {
+	can_vesc_status_1_msg_t msg = {0};
+	msg.rpm =
+		((int32_t)data[0] << 24) |
+		((int32_t)data[1] << 16) |
+		((int32_t)data[2] << 8)  |
+		((int32_t)data[3]);
+	msg.current =
+		((int16_t)data[4] << 8) |
+		((int16_t)data[5]);
+	msg.duty_cycle =
+		((int16_t)data[6] << 8) |
+		((int16_t)data[7]);
+	return msg;
+}
 
 void send_can_status(const can_status_msg_t* status, CAN_HandleTypeDef* hcan) {
 	CAN_TxHeaderTypeDef tx_header;

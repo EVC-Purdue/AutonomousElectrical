@@ -41,6 +41,7 @@ typedef struct {
 // 	- Byte 5-7: reserved / future use
 #define CAN_ID_STATUS (0x101)
 #define CAN_STATUS_IS_EXT_ID (false)
+#define CAN_STATUS_MIN_BYTES (5)
 typedef struct {
 	uint8_t mode; // logic_mode_t
 	bool rc_mode; // false = rc mode, true = autonomous mode
@@ -77,6 +78,7 @@ bool can_is_able_to_parse(const CAN_RxHeaderTypeDef* rx_header, bool is_ext_id, 
 
 can_control_msg_t parse_can_control(const uint8_t* data);
 can_heartbeat_msg_t parse_can_heartbeat(const uint8_t* data);
+can_vesc_status_1_msg_t parse_can_vesc_status_1(const uint8_t* data);
 
 void send_can_status(const can_status_msg_t* status, CAN_HandleTypeDef* hcan);
 
