@@ -21,6 +21,7 @@
 // 	- Byte 2-3: steering (uint16_t, little endian), 0-1000, where 1000 = full right, 500 = center, 0 = full left
 // 	- Byte 4-7: reserved / future use
 #define CAN_ID_CONTROL (0x100)
+#define CAN_CONTROL_IS_EXT_ID (false)
 #define CAN_CONTROL_MIN_BYTES (4)
 #define CAN_THROTTLE_MAX (1000)
 #define CAN_STEERING_MAX (1000)
@@ -39,6 +40,7 @@ typedef struct {
 // 	- Byte 3-4: steering PWM (uint16_t, little endian), the actual PWM value being sent to the servo for steering (1000-2000)
 // 	- Byte 5-7: reserved / future use
 #define CAN_ID_STATUS (0x101)
+#define CAN_STATUS_IS_EXT_ID (false)
 typedef struct {
 	uint8_t mode; // logic_mode_t
 	bool rc_mode; // false = rc mode, true = autonomous mode
@@ -51,6 +53,7 @@ typedef struct {
 // 	- Byte 0: E_Comms heartbeat counter (uint8_t)
 // 	- Byte 1-7: reserved / future use
 #define CAN_ID_HEARTBEAT (0x102)
+#define CAN_HEARTBEAT_IS_EXT_ID (false)
 #define CAN_HEARTBEAT_MIN_BYTES (1)
 typedef struct {
 	uint8_t counter; // E_Comms heartbeat counter
