@@ -57,7 +57,20 @@ typedef struct {
 } can_heartbeat_msg_t;
 
 
-bool can_is_able_to_parse(const CAN_RxHeaderTypeDef* rx_header, uint32_t expected_id, uint8_t expected_min_dlc);
+// - ID = `CAN_VESC_MSG_NUM_TO_EXT_ID(9 = CAN_VESC_STATUS_1_MSG_NUM)` (ext id) - **VESC status 1** (RX)
+// 	- Byte 0-3: VESC RPM (BE)
+// 	- Byte 4-5: VESC current (in 0.1A, so 100 = 10A) (BE)
+// 	- Byte 6-7: VESC duty cycle (in 0.001, so 1000 = 100%) (BE)
+#define CAN_ID_VESC_STATUS_1 (CAN_VESC_MSG_NUM_TO_EXT_ID(CAN_VESC_STATUS_1_MSG_NUM))
+#define CAN_VESC_STATUS_1_IS_EXT_ID (true)
+#define CAN_VESC_STATUS_1_MIN_BYTES (8)
+typedef struct {
+	int32_t rpm;
+	int16_t current; // in 0.1A, so 100 = 10A
+	int16_t duty_cycle; // in 0.001, so 1000 = 100%
+} can_vesc_status_1_msg_t;
+
+bool can_is_able_to_parse(const CAN_RxHeaderTypeDef* rx_header, bool is_ext_id, uint32_t expected_id, uint8_t expected_min_dlc);
 
 can_control_msg_t parse_can_control(const uint8_t* data);
 can_heartbeat_msg_t parse_can_heartbeat(const uint8_t* data);
