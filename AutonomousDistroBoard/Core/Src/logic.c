@@ -37,6 +37,9 @@ void logic_init(logic_state_t* state) {
 	state->can_current_steering_pwm = STEERING_PWM_CENTER;
 	state->last_control_timestamp = 0;
 
+	state->vesc_current_rpm = 0;
+	state->vesc_last_status_timestamp = 0;
+
 	state->output_throttle_pwm = THROTTLE_PWM_LOW;
 	state->output_steering_pwm = STEERING_PWM_CENTER;
 
