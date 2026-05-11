@@ -75,7 +75,7 @@ typedef struct {
 } can_vesc_status_1_msg_t;
 
 
-// ID = `CAN_VESC_MSG_NUM_TO_EXT_ID(3 = CAN_VESC_SET_RPM_MSG_NUM)` (ext id) - **VESC set RPM** (TX)
+// - ID = `CAN_VESC_MSG_NUM_TO_EXT_ID(3 = CAN_VESC_SET_RPM_MSG_NUM)` (ext id) - **VESC set RPM** (TX)
 // 	- Byte 0-3: desired VESC RPM (BE)
 // 	- Byte 4-7: reserved
 #define CAN_ID_VESC_SET_RPM (CAN_VESC_MSG_NUM_TO_EXT_ID(CAN_VESC_SET_RPM_MSG_NUM))
