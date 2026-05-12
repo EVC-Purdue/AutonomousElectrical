@@ -24,11 +24,11 @@ Autonomous Project electrical stack code
 - ID = `0x102` - **E_Comms heartbeat** (RX)
 	- Byte 0: E_Comms heartbeat counter (uint8_t)
 	- Byte 1-7: reserved / future use
-- ID = `CAN_VESC_MSG_NUM_TO_EXT_ID(3 = CAN_VESC_SET_RPM_MSG_NUM)` (ext id) - **VESC set RPM** (TX)
- 	- Byte 0-3: desired VESC RPM (BE)
+- ID = `CAN_VESC_MSG_NUM_TO_EXT_ID(3 = CAN_VESC_SET_RPM_MSG_NUM)` (ext id) - **VESC set (E)RPM** (TX)
+ 	- Byte 0-3: desired VESC ERPM (BE)
  	- Byte 4-7: reserved
 - ID = `CAN_VESC_MSG_NUM_TO_EXT_ID(9 = CAN_VESC_STATUS_1_MSG_NUM)` (ext id) - **VESC status 1** (RX)
-	- Byte 0-3: VESC RPM (BE)
+	- Byte 0-3: VESC ERPM (BE)
 	- Byte 4-5: VESC current (in 0.1A, so 100 = 10A) (BE)
 	- Byte 6-7: VESC duty cycle (in 0.001, so 1000 = 100%) (BE)
 

@@ -40,7 +40,7 @@ void logic_init(logic_state_t* state) {
 	state->heartbeat_counter = 0;
 	state->last_heartbeat_timestamp = 0;
 
-	state->vesc_current_rpm = 0;
+	state->vesc_current_erpm = 0;
 	state->vesc_last_status_timestamp = 0;
 
 	state->output_throttle_pwm = THROTTLE_PWM_LOW;
@@ -73,7 +73,7 @@ void logic_handle_vesc_status_1(const can_vesc_status_1_msg_t* vesc_status_1) {
 		return;
 	}
 
-	g_logic_state_ptr->vesc_current_rpm = vesc_status_1->rpm;
+	g_logic_state_ptr->vesc_current_erpm = vesc_status_1->erpm;
 	g_logic_state_ptr->vesc_last_status_timestamp = HAL_GetTick();
 }
 

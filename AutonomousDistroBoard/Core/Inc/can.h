@@ -62,27 +62,27 @@ typedef struct {
 
 
 // - ID = `CAN_VESC_MSG_NUM_TO_EXT_ID(9 = CAN_VESC_STATUS_1_MSG_NUM)` (ext id) - **VESC status 1** (RX)
-// 	- Byte 0-3: VESC RPM (BE)
+// 	- Byte 0-3: VESC ERPM (BE)
 // 	- Byte 4-5: VESC current (in 0.1A, so 100 = 10A) (BE)
 // 	- Byte 6-7: VESC duty cycle (in 0.001, so 1000 = 100%) (BE)
 #define CAN_ID_VESC_STATUS_1 (CAN_VESC_MSG_NUM_TO_EXT_ID(CAN_VESC_STATUS_1_MSG_NUM))
 #define CAN_VESC_STATUS_1_IS_EXT_ID (true)
 #define CAN_VESC_STATUS_1_MIN_BYTES (8)
 typedef struct {
-	int32_t rpm;
+	int32_t erpm;
 	int16_t current; // in 0.1A, so 100 = 10A
 	int16_t duty_cycle; // in 0.001, so 1000 = 100%
 } can_vesc_status_1_msg_t;
 
 
-// - ID = `CAN_VESC_MSG_NUM_TO_EXT_ID(3 = CAN_VESC_SET_RPM_MSG_NUM)` (ext id) - **VESC set RPM** (TX)
-// 	- Byte 0-3: desired VESC RPM (BE)
+// - ID = `CAN_VESC_MSG_NUM_TO_EXT_ID(3 = CAN_VESC_SET_RPM_MSG_NUM)` (ext id) - **VESC set (E)RPM** (TX)
+// 	- Byte 0-3: desired VESC ERPM (BE)
 // 	- Byte 4-7: reserved
 #define CAN_ID_VESC_SET_RPM (CAN_VESC_MSG_NUM_TO_EXT_ID(CAN_VESC_SET_RPM_MSG_NUM))
 #define CAN_VESC_SET_RPM_IS_EXT_ID (true)
 #define CAN_VESC_SET_RPM_MIN_BYTES (4)
 typedef struct {
-	int32_t rpm;
+	int32_t erpm;
 } can_vesc_set_rpm_msg_t;
 
 

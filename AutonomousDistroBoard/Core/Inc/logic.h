@@ -91,7 +91,7 @@ typedef struct {
 	volatile uint8_t heartbeat_counter; // updated by CAN RX callback when we receive a heartbeat message from E_Comms
 	volatile uint32_t last_heartbeat_timestamp; // HAL_GetTick() timestamp of last received heartbeat message from E_Comms
 
-	volatile int32_t vesc_current_rpm; // updated by CAN RX callback when we receive a VESC status 1 message
+	volatile int32_t vesc_current_erpm; // updated by CAN RX callback when we receive a VESC status 1 message
 	volatile uint32_t vesc_last_status_timestamp; // HAL_GetTick() timestamp of last received VESC status 1 message
 
 	uint16_t output_throttle_pwm; // 1000-2000, the throttle PWM value that we will output (either from iBUS or CAN depending on mode)

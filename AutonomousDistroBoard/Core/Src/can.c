@@ -56,7 +56,8 @@ can_heartbeat_msg_t parse_can_heartbeat(const uint8_t* data) {
 
 can_vesc_status_1_msg_t parse_can_vesc_status_1(const uint8_t* data) {
 	can_vesc_status_1_msg_t msg = {0};
-	msg.rpm =
+	// BIG ENDIAN
+	msg.erpm =
 		((int32_t)data[0] << 24) |
 		((int32_t)data[1] << 16) |
 		((int32_t)data[2] << 8)  |
@@ -103,10 +104,11 @@ void send_can_vesc_set_rpm(const can_vesc_set_rpm_msg_t* msg, CAN_HandleTypeDef*
 	tx_header.IDE = CAN_ID_EXT;
 	tx_header.DLC = 8;
 
-	tx_data[0] = (msg->rpm >> 24) & 0xFF;
-	tx_data[1] = (msg->rpm >> 16) & 0xFF;
-	tx_data[2] = (msg->rpm >> 8) & 0xFF;
-	tx_data[3] = msg->rpm & 0xFF;
+	// BIG ENDIAN
+	tx_data[0] = (msg->erpm >> 24) & 0xFF;
+	tx_data[1] = (msg->erpm >> 16) & 0xFF;
+	tx_data[2] = (msg->erpm >> 8) & 0xFF;
+	tx_data[3] = msg->erpm & 0xFF;
 	tx_data[4] = 0;
 	tx_data[5] = 0;
 	tx_data[6] = 0;
