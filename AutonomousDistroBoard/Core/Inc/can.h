@@ -17,16 +17,16 @@
 
 
 // - ID = `0x100` - **Control commands** (RX)
-// 	- Byte 0-1: throttle (uint16_t, little endian), 0-1000, where 1000 = full throttle
+//	- Byte 0-1: throttle ERPM (uint16_t, little endian), 0-MAX_ERPM (0 = full stop, MAX_ERPM = max speed)
 // 	- Byte 2-3: steering (uint16_t, little endian), 0-1000, where 1000 = full right, 500 = center, 0 = full left
 // 	- Byte 4-7: reserved / future use
 #define CAN_ID_CONTROL (0x100)
 #define CAN_CONTROL_IS_EXT_ID (false)
 #define CAN_CONTROL_MIN_BYTES (4)
-#define CAN_THROTTLE_MAX (1000)
+#define CAN_STEERING_MIN (0)
 #define CAN_STEERING_MAX (1000)
 typedef struct {
-	uint16_t throttle; // 0-1000
+	uint16_t throttle_erpm; // 0-MAX_ERPM
 	uint16_t steering; // 0-1000
 } can_control_msg_t;
 
@@ -94,9 +94,5 @@ can_vesc_status_1_msg_t parse_can_vesc_status_1(const uint8_t* data);
 
 void send_can_status(const can_status_msg_t* status, CAN_HandleTypeDef* hcan);
 void send_can_vesc_set_rpm(const can_vesc_set_rpm_msg_t* msg, CAN_HandleTypeDef* hcan);
-
-uint16_t can_throttle_to_pwm(const can_control_msg_t* cmd);
-uint16_t can_steering_to_pwm(const can_control_msg_t* cmd);
-
 
 #endif // CAN_H

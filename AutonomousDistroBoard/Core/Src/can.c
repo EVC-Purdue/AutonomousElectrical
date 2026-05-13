@@ -4,7 +4,7 @@
 #include "stm32f4xx_hal.h"
 
 #include "logic.h"
-#include "util.h"
+
 
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
     if (hcan->Instance == CAN_BUS) {
@@ -43,7 +43,7 @@ bool can_is_able_to_parse(
 
 can_control_msg_t parse_can_control(const uint8_t* data) {
 	can_control_msg_t msg = {0};
-	msg.throttle = data[0] | (data[1] << 8);
+	msg.throttle_erpm = data[0] | (data[1] << 8);
 	msg.steering = data[2] | (data[3] << 8);
 	return msg;
 }
@@ -116,12 +116,4 @@ void send_can_vesc_set_rpm(const can_vesc_set_rpm_msg_t* msg, CAN_HandleTypeDef*
 
 	uint32_t tx_mailbox;
 	HAL_CAN_AddTxMessage(hcan, &tx_header, tx_data, &tx_mailbox);
-}
-
-
-uint16_t can_throttle_to_pwm(const can_control_msg_t* cmd) {
-	return map_u16(cmd->throttle, 0, CAN_THROTTLE_MAX, THROTTLE_PWM_LOW, THROTTLE_PWM_HIGH);
-}
-uint16_t can_steering_to_pwm(const can_control_msg_t* cmd) {
-	return map_u16(cmd->steering, 0, CAN_STEERING_MAX, STEERING_PWM_LOW, STEERING_PWM_HIGH);
 }
