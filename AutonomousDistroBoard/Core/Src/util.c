@@ -56,11 +56,12 @@ int32_t map_i32(int32_t value, int32_t in_min, int32_t in_max, int32_t out_min, 
 	}
 
 	// Saturate value to input range to avoid underflow/overflow in arithmetic
-	if (value <= in_min) {
-		return out_min;
-	}
-	if (value >= in_max) {
-		return out_max;
+	if (in_min < in_max) {
+		if (value <= in_min) return out_min;
+		if (value >= in_max) return out_max;
+	} else {
+		if (value >= in_min) return out_min;
+		if (value <= in_max) return out_max;
 	}
 
 	int64_t range_in  = (int64_t)in_max  - (int64_t)in_min;
@@ -68,7 +69,14 @@ int32_t map_i32(int32_t value, int32_t in_min, int32_t in_max, int32_t out_min, 
 	int64_t num       = (int64_t)value  - (int64_t)in_min;
 	int64_t scaled    = num * range_out;
 
-	return (int32_t)((scaled + range_in / 2) / range_in + out_min);
+	int64_t offset;
+	if ((scaled >= 0) == (range_in >= 0)) {
+		offset = range_in / 2;
+	} else {
+		offset = -(range_in / 2);
+	}
+
+	return (int32_t)((scaled + offset) / range_in + out_min);
 }
 //----------------------------------------------------------------------------//
 
