@@ -37,6 +37,8 @@
 
 #define RC_CONNECTION_TIMEOUT (100) // ms, if we did not get a valid iBUS frame within this time, consider the RC connection to be lost
 
+#define VESC_ERPM_MAX (4000)
+
 // Really these are half periods b/c it is the rate at which the LED toggles
 #define LED_STARTING_PERIOD           (100)  // ms
 #define LED_PRECHARGING_PERIOD        (400)  // ms
@@ -94,8 +96,9 @@ typedef struct {
 	volatile int32_t vesc_current_erpm; // updated by CAN RX callback when we receive a VESC status 1 message
 	volatile uint32_t vesc_last_status_timestamp; // HAL_GetTick() timestamp of last received VESC status 1 message
 
-	uint16_t output_throttle_pwm; // 1000-2000, the throttle PWM value that we will output (either from iBUS or CAN depending on mode)
-	uint16_t output_steering_pwm; // 1000-2000, the steering PWM value that we will output (either from iBUS or CAN depending on mode)
+	int32_t output_throttle_erpm; // the ERPM value sent to the motor controller in the current/last iteration
+	uint16_t output_throttle_pwm; // 1000-2000, the PWM value sent to the motor controller in the current/last iteration. Calculated from output_throttle_erpm
+	uint16_t output_steering_pwm; // 1000-2000, PWM value sent to the steering servo in the current/last iteration
 } logic_state_t;
 
 void logic_init(logic_state_t* state);
