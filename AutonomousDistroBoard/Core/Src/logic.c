@@ -58,11 +58,6 @@ uint16_t logic_erpm_to_pwm(int32_t erpm) {
 	return (uint16_t)throttle_i32;
 }
 
-int32_t logic_pwm_to_erpm(uint16_t pwm) {
-	// Safe to cast pwm to a uint32_t as a uint16_t always fits in an int32_t
-	return map_i32((int32_t)pwm, THROTTLE_PWM_LOW, THROTTLE_PWM_HIGH, 0, VESC_ERPM_MAX);
-}
-
 void logic_handle_control(const can_control_msg_t* cmd) {
 	if (g_logic_state_ptr == NULL) {
 		return;
@@ -194,8 +189,7 @@ void logic_run(
 				uint16_t ibus_throttle_pwm = state->ibus.channels[IBUS_CHANNEL_THROTTLE];
 				uint16_t ibus_steering_pwm = state->ibus.channels[IBUS_CHANNEL_STEERING];
 
-				uint16_t output_throttle_pwm = map_u16(ibus_throttle_pwm, THROTTLE_STICK_IDLE, THROTTLE_STICK_MAX, THROTTLE_PWM_LOW, THROTTLE_PWM_HIGH);
-				state->output_throttle_erpm = logic_pwm_to_erpm(output_throttle_pwm); // output PWM is calculated else where.
+				state->output_throttle_erpm = map_i32((int32_t)ibus_throttle_pwm, THROTTLE_STICK_IDLE, THROTTLE_STICK_MAX, 0, VESC_ERPM_MAX);
 				state->output_steering_pwm = ibus_steering_pwm; // iBUS steering is already in the form of a PWM value, just pass it through directly
 			}
 
