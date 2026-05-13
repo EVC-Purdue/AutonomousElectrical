@@ -46,7 +46,7 @@ uint16_t map_u16(uint16_t value, uint16_t in_min, uint16_t in_max, uint16_t out_
 	uint32_t num       = (uint32_t)value  - (uint32_t)in_min;
 	uint32_t scaled    = num * range_out;
 
-	return (uint16_t)(scaled / range_in + out_min);
+	return (uint16_t)((scaled + range_in / 2) / range_in + out_min);
 }
 
 int32_t map_i32(int32_t value, int32_t in_min, int32_t in_max, int32_t out_min, int32_t out_max) {
@@ -68,7 +68,7 @@ int32_t map_i32(int32_t value, int32_t in_min, int32_t in_max, int32_t out_min, 
 	int64_t num       = (int64_t)value  - (int64_t)in_min;
 	int64_t scaled    = num * range_out;
 
-	return (int32_t)(scaled / range_in + out_min);
+	return (int32_t)((scaled + range_in / 2) / range_in + out_min);
 }
 //----------------------------------------------------------------------------//
 
