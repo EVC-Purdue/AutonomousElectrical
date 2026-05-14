@@ -1,7 +1,6 @@
 #include "logic.h"
 
 #include <stdint.h>
-#include <string.h>
 
 #include "ibus.h"
 #include "main.h"
