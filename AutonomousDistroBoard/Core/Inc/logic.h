@@ -24,13 +24,13 @@
 #define THROTTLE_STICK_MAX  (2000) // maximum throttle stick value
 
 #define ESTOP_PWM_THRESHOLD         (1500) // if the ESTOP channel goes above this value, consider the remote estop to be triggered
-#define ESTOP_RISING_DEBOUNCE       (300) // ms, require the ESTOP channel to be above the threshold for at least this long before considering the remote estop to be triggered
-#define ESTOP_ACCUMULATING_DEBOUNCE (30) // ms, when the rising ESTOP is debouncing/accumulating, require the ESTOP channel to be below the threshold for at least this long before resetting the debounce timer
-#define ESTOP_FALLING_DEBOUNCE      (300) // ms, require the ESTOP channel to be below the threshold for at least this long before considering the remote estop to be no longer triggered
+#define ESTOP_RISING_DEBOUNCE       (300)  // ms, require the ESTOP channel to be above the threshold for at least this long before considering the remote estop to be triggered
+#define ESTOP_ACCUMULATING_DEBOUNCE (30)   // ms, when the rising ESTOP is debouncing/accumulating, require the ESTOP channel to be below the threshold for at least this long before resetting the debounce timer
+#define ESTOP_FALLING_DEBOUNCE      (300)  // ms, require the ESTOP channel to be below the threshold for at least this long before considering the remote estop to be no longer triggered
 
 #define MODE_PWM_THRESHOLD            (1500) // if the MODE channel is above this value, consider it to be in autonomous mode, otherwise RC mode
-#define MODE_DEBOUNCE_MS              (500) // ms, require the MODE channel to be consistently above or below the threshold for at least this long before switching modes
-#define MODE_ACCUMULATING_DEBOUNCE_MS (50) // ms, when the rising MODE is debouncing/accumulating, require the MODE channel to be below the threshold for at least this long before resetting the debounce timer
+#define MODE_DEBOUNCE_MS              (500)  // ms, require the MODE channel to be consistently above or below the threshold for at least this long before switching modes
+#define MODE_ACCUMULATING_DEBOUNCE_MS (50)   // ms, when the rising MODE is debouncing/accumulating, require the MODE channel to be below the threshold for at least this long before resetting the debounce timer
 
 #define CAN_STATUS_TX_PERIOD       (10) // ms
 #define CAN_VESC_SET_RPM_TX_PERIOD (3) // ms
