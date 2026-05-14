@@ -258,7 +258,8 @@ void logic_run(
 	}
 
 	// Clamp the output values to their valid ranges just in case
-	state->output_throttle_erpm = clamp_i32(state->output_throttle_erpm, 0, VESC_ERPM_MAX);
+	bool autonomous_mode = debounce_controller_get_state(&state->mode_debounce);
+	state->output_throttle_erpm = clamp_i32(state->output_throttle_erpm, 0, autonomous_mode ? AUTONOMOUS_ERPM_MAX : RC_ERPM_MAX);
 	state->output_steering_pwm = clamp_u16(state->output_steering_pwm, STEERING_PWM_LOW, STEERING_PWM_HIGH);
 
 	// Set the throttle PWM as a function of the output ERPM
