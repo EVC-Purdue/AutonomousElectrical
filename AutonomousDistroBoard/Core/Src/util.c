@@ -78,6 +78,14 @@ int32_t map_i32(int32_t value, int32_t in_min, int32_t in_max, int32_t out_min, 
 
 	return (int32_t)((scaled + offset) / range_in + out_min);
 }
+
+int32_t max_i32(int32_t a, int32_t b) {
+	return (a > b) ? a : b;
+}
+
+int32_t min_i32(int32_t a, int32_t b) {
+	return (a < b) ? a : b;
+}
 //----------------------------------------------------------------------------//
 
 

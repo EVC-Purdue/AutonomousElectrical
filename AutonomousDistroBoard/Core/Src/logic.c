@@ -29,6 +29,13 @@ void logic_init(logic_state_t* state) {
 		MODE_DEBOUNCE_MS,
 		MODE_ACCUMULATING_DEBOUNCE_MS
 	);
+	debounce_controller_init(
+		&state->idle_debounce,
+		false,
+		IDLE_DEBOUNCE_MS,
+		IDLE_DEBOUNCE_MS,
+		IDLE_ACCUMULATING_DEBOUNCE_MS
+	);
 
 	ibus_init(&state->ibus);
 	state->last_can_status_tx_time = 0;
@@ -47,6 +54,9 @@ void logic_init(logic_state_t* state) {
 	state->output_throttle_pwm = THROTTLE_PWM_LOW;
 	state->output_steering_pwm = STEERING_PWM_CENTER;
 	state->last_can_vesc_set_rpm_tx_time = 0;
+
+	state->last_loop_time = HAL_GetTick();
+	state->now = HAL_GetTick();
 
 	g_logic_state_ptr = state;
 }
@@ -94,6 +104,21 @@ void logic_switch_mode(logic_state_t* state, logic_mode_t new_mode, uint32_t now
 	state->last_mode_set_time = now;
 }
 
+logic_running_submode_t logic_get_running_submode(logic_state_t* state) {
+	// IDLE mode overpowers autonomous/RC mode
+	bool idle_mode = debounce_controller_get_state(&state->idle_debounce);
+	if (idle_mode) {
+		return LOGIC_RUNNING_IDLE;
+	}
+
+	bool autonomous_mode = debounce_controller_get_state(&state->mode_debounce);
+	if (autonomous_mode) {
+		return LOGIC_RUNNING_AUTONOMOUS;
+	} else {
+		return LOGIC_RUNNING_RC;
+	}
+}
+
 void logic_run(
 	logic_state_t* state,
 	UART_HandleTypeDef* sbus_huart,
@@ -104,25 +129,30 @@ void logic_run(
 	// Process iBUS data
 	ibus_process(&state->ibus, sbus_huart);
 
-	uint32_t now = HAL_GetTick();
+	state->last_loop_time = state->now;
+	state->now = HAL_GetTick();
 
 	// All states: Check for RC connection timeout
-	if (!ibus_is_connected(&state->ibus, now, RC_CONNECTION_TIMEOUT)) {
-		logic_switch_mode(state, LOGIC_MODE_RC_DISCONNECTED, now);
+	if (!ibus_is_connected(&state->ibus, state->now, RC_CONNECTION_TIMEOUT)) {
+		logic_switch_mode(state, LOGIC_MODE_RC_DISCONNECTED, state->now);
 	} else {
 		// All states: update RC debounce controllers
 		uint16_t estop_channel_value = state->ibus.channels[IBUS_CHANNEL_ESTOP];
 		bool estop_raw_high = estop_channel_value >= ESTOP_PWM_THRESHOLD;
-		debounce_controller_update(&state->estop_debounce, estop_raw_high, now);
+		debounce_controller_update(&state->estop_debounce, estop_raw_high, state->now);
 
 		uint16_t mode_channel_value = state->ibus.channels[IBUS_CHANNEL_MODE];
 		bool mode_raw_high = mode_channel_value >= MODE_PWM_THRESHOLD;
-		debounce_controller_update(&state->mode_debounce, mode_raw_high, now);
+		debounce_controller_update(&state->mode_debounce, mode_raw_high, state->now);
+
+		uint16_t idle_channel_value = state->ibus.channels[IBUS_CHANNEL_IDLE];
+		bool idle_raw_high = idle_channel_value >= IDLE_PWM_THRESHOLD;
+		debounce_controller_update(&state->idle_debounce, idle_raw_high, state->now);
 
 		// All states: check remote estop
 		bool estop_debounced_high = debounce_controller_get_state(&state->estop_debounce);
 		if (estop_debounced_high) {
-			logic_switch_mode(state, LOGIC_MODE_ESTOPPED, now);
+			logic_switch_mode(state, LOGIC_MODE_ESTOPPED, state->now);
 			// Note: if it was high and remains high, we want to continue to force
 		}
 	}
@@ -134,8 +164,8 @@ void logic_run(
 			HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_RESET);
 			HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_RESET);
 
-			if (util_has_elapsed(now, state->last_mode_set_time, PRECHARGE_START_DELAY)) {
-				logic_switch_mode(state, LOGIC_MODE_PRECHARGING, now);
+			if (util_has_elapsed(state->now, state->last_mode_set_time, PRECHARGE_START_DELAY)) {
+				logic_switch_mode(state, LOGIC_MODE_PRECHARGING, state->now);
 			}
 			break;
 		}
@@ -144,8 +174,8 @@ void logic_run(
 			HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_SET);
 			HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_RESET);
 
-			if (util_has_elapsed(now, state->last_mode_set_time, PRECHARGE_DURATION)) {
-				logic_switch_mode(state, LOGIC_MODE_CONTACTOR_CLOSING, now);
+			if (util_has_elapsed(state->now, state->last_mode_set_time, PRECHARGE_DURATION)) {
+				logic_switch_mode(state, LOGIC_MODE_CONTACTOR_CLOSING, state->now);
 			}
 			break;
 		}
@@ -154,8 +184,8 @@ void logic_run(
 			HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_SET);
 			HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_SET);
 
-			if (util_has_elapsed(now, state->last_mode_set_time, CONTACTOR_CLOSED_DELAY)) {
-				logic_switch_mode(state, LOGIC_MODE_RUNNING, now);
+			if (util_has_elapsed(state->now, state->last_mode_set_time, CONTACTOR_CLOSED_DELAY)) {
+				logic_switch_mode(state, LOGIC_MODE_RUNNING, state->now);
 			}
 			break;
 		}
@@ -164,35 +194,53 @@ void logic_run(
 			HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_RESET);
 			HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_SET);
 
-			// Normal operation!
-
-			bool autonomous_mode = debounce_controller_get_state(&state->mode_debounce);
-
-			// In autonomous mode, ignore iBUS throttle and steering and only use CAN commands
-			if (autonomous_mode) {
-				if (!util_has_elapsed(now, state->last_heartbeat_timestamp, CAN_RX_HB_TIMEOUT)) {
-					// If we have received a heartbeat message recently, consider the CAN connection to be
-					// healthy and use CAN commands for throttle and steering
-					state->output_throttle_erpm = state->can_current_throttle_erpm;
-					state->output_steering_pwm = state->can_current_steering_pwm;
-				} else {
-					// If we have not received a heartbeat message recently, consider the CAN connection to
-					// be lost and switch to CAN_DISCONNECTED mode
-					logic_switch_mode(state, LOGIC_MODE_CAN_DISCONNECTED, now);
-					state->output_throttle_erpm = 0;
-					state->output_steering_pwm = STEERING_PWM_CENTER;
+			logic_running_submode_t running_submode = logic_get_running_submode(state);
+			switch (running_submode) {
+				case LOGIC_RUNNING_RC: {
+					// RC mode: use iBUS inputs for throttle and steering
+					// Don't need to check RC connection here because if it was lost we would
+					// have already switched to RC_DISCONNECTED mode in the earlier check
+					uint16_t ibus_throttle_pwm = state->ibus.channels[IBUS_CHANNEL_THROTTLE];
+					uint16_t ibus_steering_pwm = state->ibus.channels[IBUS_CHANNEL_STEERING];
+					state->output_throttle_erpm = map_i32((int32_t)ibus_throttle_pwm, THROTTLE_STICK_IDLE, THROTTLE_STICK_MAX, 0, RC_ERPM_MAX);
+					state->output_steering_pwm = ibus_steering_pwm; // iBUS steering is already in the form of a PWM value, just pass it through directly
+					break;
 				}
-			} 
-			// In RC mode, ignore CAN commands and only use iBUS throttle and steering
-			else {
-				uint16_t ibus_throttle_pwm = state->ibus.channels[IBUS_CHANNEL_THROTTLE];
-				uint16_t ibus_steering_pwm = state->ibus.channels[IBUS_CHANNEL_STEERING];
+				case LOGIC_RUNNING_AUTONOMOUS: {
+					// Autonomous mode: use CAN throttle and steering
+					if (!util_has_elapsed(state->now, state->last_heartbeat_timestamp, CAN_RX_HB_TIMEOUT)) {
+						// If we have received a heartbeat message recently, consider the CAN connection to be
+						// healthy and use CAN commands for throttle and steering
+						state->output_throttle_erpm = state->can_current_throttle_erpm;
+						state->output_steering_pwm = state->can_current_steering_pwm;
+					} else {
+						// If we have not received a heartbeat message recently, consider the CAN connection to
+						// be lost and switch to CAN_DISCONNECTED mode
+						logic_switch_mode(state, LOGIC_MODE_CAN_DISCONNECTED, state->now);
+						state->output_throttle_erpm = 0;
+						state->output_steering_pwm = STEERING_PWM_CENTER;
+					}
+					break;
+				}
+				case LOGIC_RUNNING_IDLE: {
+					// Idle mode: ignore throttle and steering inputs
+					// Rate-limited resetting of throttle and steering (throttle to 0, steering to center)
+					float dt = (state->now - state->last_loop_time) / 1000.0f;
 
-				state->output_throttle_erpm = map_i32((int32_t)ibus_throttle_pwm, THROTTLE_STICK_IDLE, THROTTLE_STICK_MAX, 0, RC_ERPM_MAX);
-				state->output_steering_pwm = ibus_steering_pwm; // iBUS steering is already in the form of a PWM value, just pass it through directly
+					// Decrease ERPM at a fixed deceleration rate but not below 0
+					int32_t throttle_erpm_change = (int32_t)(IDLE_ERPM_DECEL * dt);
+					state->output_throttle_erpm = (int32_t)max_i32(state->output_throttle_erpm - throttle_erpm_change, 0);
+
+					// Steer towards center at a fixed rate
+					float steering_pwm_change = IDLE_STEERING_PWM_VEL * dt;
+					if (state->output_steering_pwm < STEERING_PWM_CENTER) {
+						state->output_steering_pwm = (uint16_t)min_i32((int32_t)state->output_steering_pwm + (int32_t)steering_pwm_change, STEERING_PWM_CENTER);
+					} else if (state->output_steering_pwm > STEERING_PWM_CENTER) {
+						state->output_steering_pwm = (uint16_t)max_i32((int32_t)state->output_steering_pwm - (int32_t)steering_pwm_change, STEERING_PWM_CENTER);
+					}
+					break;
+				}
 			}
-
-
 			break;
 		} //--------------------------------------------------------------------------//
 		case LOGIC_MODE_ESTOPPED: {
@@ -204,7 +252,7 @@ void logic_run(
 
 			bool estop_debounced_high = debounce_controller_get_state(&state->estop_debounce);
 			if (!estop_debounced_high) {
-				logic_switch_mode(state, LOGIC_MODE_RECOVERING, now);
+				logic_switch_mode(state, LOGIC_MODE_RECOVERING, state->now);
 			}
 			break;
 		}
@@ -215,8 +263,8 @@ void logic_run(
 			state->output_throttle_erpm = 0;
 			state->output_steering_pwm = STEERING_PWM_CENTER;
 
-			if (ibus_is_connected(&state->ibus, now, RC_CONNECTION_TIMEOUT)) {
-				logic_switch_mode(state, LOGIC_MODE_RECOVERING, now);
+			if (ibus_is_connected(&state->ibus, state->now, RC_CONNECTION_TIMEOUT)) {
+				logic_switch_mode(state, LOGIC_MODE_RECOVERING, state->now);
 			}
 			break;
 		}
@@ -230,15 +278,15 @@ void logic_run(
 
 			uint16_t mode_channel_value = state->ibus.channels[IBUS_CHANNEL_MODE];
 			bool mode_raw_high = mode_channel_value >= MODE_PWM_THRESHOLD;
-			debounce_controller_update(&state->mode_debounce, mode_raw_high, now);
+			debounce_controller_update(&state->mode_debounce, mode_raw_high, state->now);
 
 			bool autonomous_mode = debounce_controller_get_state(&state->mode_debounce);
-			bool can_connection_ok = !util_has_elapsed(now, state->last_heartbeat_timestamp, CAN_RX_HB_TIMEOUT);
-			bool ibus_connection_ok = ibus_is_connected(&state->ibus, now, RC_CONNECTION_TIMEOUT);
+			bool can_connection_ok = !util_has_elapsed(state->now, state->last_heartbeat_timestamp, CAN_RX_HB_TIMEOUT);
+			bool ibus_connection_ok = ibus_is_connected(&state->ibus, state->now, RC_CONNECTION_TIMEOUT);
 
 			if ((autonomous_mode && can_connection_ok)
 				|| (!autonomous_mode && ibus_connection_ok)) {
-				logic_switch_mode(state, LOGIC_MODE_RECOVERING, now);
+				logic_switch_mode(state, LOGIC_MODE_RECOVERING, state->now);
 			}
 			break;
 		}
@@ -249,8 +297,8 @@ void logic_run(
 			state->output_throttle_erpm = 0;
 			state->output_steering_pwm = STEERING_PWM_CENTER;
 
-			if (util_has_elapsed(now, state->last_mode_set_time, RECOVERING_DELAY)) {
-				logic_switch_mode(state, LOGIC_MODE_STARTING, now);
+			if (util_has_elapsed(state->now, state->last_mode_set_time, RECOVERING_DELAY)) {
+				logic_switch_mode(state, LOGIC_MODE_STARTING, state->now);
 			}
 
 			break;
@@ -267,14 +315,14 @@ void logic_run(
 
 	// Periodically send CAN throttle commands to the VESC
 	if (
-		util_has_elapsed(now, state->last_can_vesc_set_rpm_tx_time, CAN_VESC_SET_RPM_TX_PERIOD) &&
+		util_has_elapsed(state->now, state->last_can_vesc_set_rpm_tx_time, CAN_VESC_SET_RPM_TX_PERIOD) &&
 		HAL_CAN_GetTxMailboxesFreeLevel(hcan) > 0
 	) {
 		can_vesc_set_rpm_msg_t set_rpm_msg = {
 			.erpm = state->output_throttle_erpm
 		};
 		send_can_vesc_set_rpm(&set_rpm_msg, hcan);
-		state->last_can_vesc_set_rpm_tx_time = now;
+		state->last_can_vesc_set_rpm_tx_time = state->now;
 	}
 
 	// Set the PWM outputs
@@ -283,7 +331,7 @@ void logic_run(
 
 	// Periodically send CAN status messages
 	if (
-		util_has_elapsed(now, state->last_can_status_tx_time, CAN_STATUS_TX_PERIOD) &&
+		util_has_elapsed(state->now, state->last_can_status_tx_time, CAN_STATUS_TX_PERIOD) &&
 		HAL_CAN_GetTxMailboxesFreeLevel(hcan) > 0
 	) {
 		can_status_msg_t status = {
@@ -293,7 +341,7 @@ void logic_run(
 			.steering_pwm = state->output_steering_pwm
 		};
 		send_can_status(&status, hcan);
-		state->last_can_status_tx_time = now;
+		state->last_can_status_tx_time = state->now;
 	}
 
 	// Blink LED
@@ -303,11 +351,11 @@ void logic_run(
 		case LOGIC_MODE_PRECHARGING:       led_period = LED_PRECHARGING_PERIOD;       break;
 		case LOGIC_MODE_CONTACTOR_CLOSING: led_period = LED_CONTACTOR_CLOSING_PERIOD; break;
 		case LOGIC_MODE_RUNNING: {
-			bool autonomous_mode = debounce_controller_get_state(&state->mode_debounce);
-			if (autonomous_mode) {
-				led_period = LED_RUNNING_AUTONOMOUS_PERIOD;
-			} else {
-				led_period = LED_RUNNING_RC_PERIOD;
+			logic_running_submode_t running_submode = logic_get_running_submode(state);
+			switch (running_submode) {
+				case LOGIC_RUNNING_RC:         led_period = LED_RUNNING_RC_PERIOD;         break;
+				case LOGIC_RUNNING_AUTONOMOUS: led_period = LED_RUNNING_AUTONOMOUS_PERIOD; break;
+				case LOGIC_RUNNING_IDLE:       led_period = LED_RUNNING_IDLE_PERIOD;       break;
 			}
 			break;
 		}
@@ -320,7 +368,7 @@ void logic_run(
 		// Solid on
 		HAL_GPIO_WritePin(LED_OUT_GPIO_Port, LED_OUT_Pin, GPIO_PIN_SET);
 	} else {
-		bool led_on = (now / led_period) % 2 == 0;
+		bool led_on = (state->now / led_period) % 2 == 0;
 		HAL_GPIO_WritePin(LED_OUT_GPIO_Port, LED_OUT_Pin, led_on ? GPIO_PIN_SET : GPIO_PIN_RESET);
 	}
 }

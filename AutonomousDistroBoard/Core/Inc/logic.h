@@ -2,6 +2,7 @@
 #define LOGIC_H
 
 #include <stdint.h>
+#include <assert.h>
 
 #include "stm32f4xx_hal.h"
 
@@ -19,18 +20,23 @@
 #define IBUS_CHANNEL_STEERING (3) // 1000 = full left, 1500 = center, 2000 = full right
 #define IBUS_CHANNEL_MODE     (4) // ~1000 = RC mode, ~2000 = autonomous mode
 #define IBUS_CHANNEL_ESTOP    (5) // ~1000 = not pressed, ~2000 = estop
+#define IBUS_CHANNEL_IDLE     (7) // ~1000 = not idle, ~2000 = idle
 
 #define THROTTLE_STICK_IDLE (1500) // throttle stick resting value
 #define THROTTLE_STICK_MAX  (2000) // maximum throttle stick value
 
 #define ESTOP_PWM_THRESHOLD         (1500) // if the ESTOP channel goes above this value, consider the remote estop to be triggered
-#define ESTOP_RISING_DEBOUNCE       (300) // ms, require the ESTOP channel to be above the threshold for at least this long before considering the remote estop to be triggered
-#define ESTOP_ACCUMULATING_DEBOUNCE (30) // ms, when the rising ESTOP is debouncing/accumulating, require the ESTOP channel to be below the threshold for at least this long before resetting the debounce timer
-#define ESTOP_FALLING_DEBOUNCE      (300) // ms, require the ESTOP channel to be below the threshold for at least this long before considering the remote estop to be no longer triggered
+#define ESTOP_RISING_DEBOUNCE       (300)  // ms, require the ESTOP channel to be above the threshold for at least this long before considering the remote estop to be triggered
+#define ESTOP_ACCUMULATING_DEBOUNCE (30)   // ms, when the rising ESTOP is debouncing/accumulating, require the ESTOP channel to be below the threshold for at least this long before resetting the debounce timer
+#define ESTOP_FALLING_DEBOUNCE      (300)  // ms, require the ESTOP channel to be below the threshold for at least this long before considering the remote estop to be no longer triggered
 
 #define MODE_PWM_THRESHOLD            (1500) // if the MODE channel is above this value, consider it to be in autonomous mode, otherwise RC mode
-#define MODE_DEBOUNCE_MS              (500) // ms, require the MODE channel to be consistently above or below the threshold for at least this long before switching modes
-#define MODE_ACCUMULATING_DEBOUNCE_MS (50) // ms, when the rising MODE is debouncing/accumulating, require the MODE channel to be below the threshold for at least this long before resetting the debounce timer
+#define MODE_DEBOUNCE_MS              (500)  // ms, require the MODE channel to be consistently above or below the threshold for at least this long before switching modes
+#define MODE_ACCUMULATING_DEBOUNCE_MS (50)   // ms, when the rising MODE is debouncing/accumulating, require the MODE channel to be below the threshold for at least this long before resetting the debounce timer
+
+#define IDLE_PWM_THRESHOLD            (1500) // if the IDLE channel goes above this value, consider to be in IDLE mode
+#define IDLE_DEBOUNCE_MS              (500)  // ms, require the IDLE channel to be consistently above or below the threshold for at least this long before switching modes
+#define IDLE_ACCUMULATING_DEBOUNCE_MS (50)   // ms, when the IDLE channel is debouncing/accumulating, require the IDLE channel to be below the threshold for at least this long before resetting the debounce timer
 
 #define CAN_STATUS_TX_PERIOD       (10) // ms
 #define CAN_VESC_SET_RPM_TX_PERIOD (3) // ms
@@ -42,12 +48,18 @@
 #define AUTONOMOUS_ERPM_MAX (VESC_ERPM_MAX) // Maximum ERPM allowed in software/autonomous mode. Software allowed to command full range.
 #define RC_ERPM_MAX         (2000)          // Maximum ERPM allowed in RC mode
 
+#define IDLE_ERPM_DECEL (4000)       // ERPM/s, max deceleration (rate of change of ERPM) when in IDLE
+#define IDLE_STEERING_PWM_VEL (1000) // PWM/s, max rate of change of steering when in IDLE
+static_assert(IDLE_ERPM_DECEL >= 1000, "dt resolution is 1ms so (int32_t)(dt * IDLE_ERPM_DECEL) needs to be at least 1 to ensure that we can actually decrease the ERPM");
+static_assert(IDLE_STEERING_PWM_VEL >= 1000, "dt resolution is 1ms so (int32_t)(dt * IDLE_STEERING_PWM_VEL) needs to be at least 1 to ensure that we can actually change the steering PWM");
+
 // Really these are half periods b/c it is the rate at which the LED toggles
 #define LED_STARTING_PERIOD           (100)  // ms
 #define LED_PRECHARGING_PERIOD        (400)  // ms
 #define LED_CONTACTOR_CLOSING_PERIOD  (50)   // ms
 #define LED_RUNNING_RC_PERIOD         (1000) // ms
 #define LED_RUNNING_AUTONOMOUS_PERIOD (250)  // ms
+#define LED_RUNNING_IDLE_PERIOD       (125)  // ms
 #define LED_ESTOPPED_PERIOD           (0)    // solid on
 #define LED_RC_DISCONNECTED_PERIOD    (0)    // solid on
 #define LED_CAN_DISCONNECTED_PERIOD   (0)    // solid on
@@ -78,6 +90,12 @@ typedef enum {
 	LOGIC_MODE_RECOVERING,
 } logic_mode_t;
 
+typedef enum {
+	LOGIC_RUNNING_RC = 0,
+	LOGIC_RUNNING_AUTONOMOUS,
+	LOGIC_RUNNING_IDLE,
+} logic_running_submode_t;
+
 
 typedef struct {
 	logic_mode_t mode; // Use logic_switch_mode() for normal mode transitions so last_mode_set_time is updated; direct assignment is only for initialization/internal setup that also handles last_mode_set_time appropriately
@@ -88,6 +106,7 @@ typedef struct {
 	
 	debounce_controller_t estop_debounce; // debounce controller for the remote estop channel
 	debounce_controller_t mode_debounce; // low = RC mode, high = autonomous mode
+	debounce_controller_t idle_debounce; // low = not idle, high = idle
 
 	volatile uint16_t can_current_throttle_erpm; // 0-MAX_ERPM, updated by CAN RX callback
 	volatile uint16_t can_current_steering_pwm; // 1000-2000, updated by CAN RX callback
@@ -103,13 +122,20 @@ typedef struct {
 	uint16_t output_throttle_pwm; // 1000-2000, the PWM value sent to the motor controller in the current/last iteration. Always set as a function of output_throttle_erpm.
 	uint16_t output_steering_pwm; // 1000-2000, PWM value sent to the steering servo in the current/last iteration
 	uint32_t last_can_vesc_set_rpm_tx_time; // time of the last sent CAN set (E)RPM message (to VESC)
+
+	uint32_t last_loop_time; // HAL_GetTick() timestamp of the start of the last logic_run() iteration, used for calculation of delta time in IDLE deceleration and steering rate limiting
+	uint32_t now; // HAL_GetTick() timestamp of the current logic_run() iteration, used for all timeouts and timing-related logic in logic_run() and to set last_loop_time
 } logic_state_t;
 
 void logic_init(logic_state_t* state);
 
 void logic_switch_mode(logic_state_t* state, logic_mode_t new_mode, uint32_t now);
 
-// Called once in the main loop
+// Only gives a valid result when in LOGIC_MODE_RUNNING, otherwise the result is not useful/valid
+logic_running_submode_t logic_get_running_submode(logic_state_t* state);
+
+// Called AFAP (as fast as possible) in the main loop
+// It is also the only thing called in the main loop
 void logic_run(
 	logic_state_t* state,
 	UART_HandleTypeDef* sbus_huart,
