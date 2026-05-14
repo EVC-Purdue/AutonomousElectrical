@@ -118,7 +118,8 @@ void logic_init(logic_state_t* state);
 
 void logic_switch_mode(logic_state_t* state, logic_mode_t new_mode, uint32_t now);
 
-// Called once in the main loop
+// Called AFAP (as fast as possible) in the main loop
+// It is also the only thing called in the main loop
 void logic_run(
 	logic_state_t* state,
 	UART_HandleTypeDef* sbus_huart,
