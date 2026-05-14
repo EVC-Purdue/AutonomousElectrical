@@ -357,6 +357,7 @@ void logic_run(
 				case LOGIC_RUNNING_AUTONOMOUS: led_period = LED_RUNNING_AUTONOMOUS_PERIOD; break;
 				case LOGIC_RUNNING_IDLE:       led_period = LED_RUNNING_IDLE_PERIOD;       break;
 			}
+			break;
 		}
 		case LOGIC_MODE_ESTOPPED:	       led_period = LED_ESTOPPED_PERIOD;          break;
 		case LOGIC_MODE_RC_DISCONNECTED:   led_period = LED_RC_DISCONNECTED_PERIOD;   break;
