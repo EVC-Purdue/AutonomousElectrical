@@ -47,7 +47,8 @@
 #define AUTONOMOUS_ERPM_MAX (VESC_ERPM_MAX) // Maximum ERPM allowed in software/autonomous mode. Software allowed to command full range.
 #define RC_ERPM_MAX         (2000)          // Maximum ERPM allowed in RC mode
 
-#define IDLE_ERPM_ACCEL (4000) // ERPM/s, max deceleration when in IDLE
+#define IDLE_ERPM_ACCEL (4000)       // ERPM/s, max deceleration (rate of change of ERPM) when in IDLE
+#define IDLE_STEERING_PWM_VEL (500) // PWM/s, max rate of change of steering when in IDLE
 
 // Really these are half periods b/c it is the rate at which the LED toggles
 #define LED_STARTING_PERIOD           (100)  // ms
