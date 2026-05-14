@@ -19,6 +19,7 @@
 #define IBUS_CHANNEL_STEERING (3) // 1000 = full left, 1500 = center, 2000 = full right
 #define IBUS_CHANNEL_MODE     (4) // ~1000 = RC mode, ~2000 = autonomous mode
 #define IBUS_CHANNEL_ESTOP    (5) // ~1000 = not pressed, ~2000 = estop
+#define IBUS_CHANNEL_IDLE     (7) // ~1000 = not idle, ~2000 = idle
 
 #define THROTTLE_STICK_IDLE (1500) // throttle stick resting value
 #define THROTTLE_STICK_MAX  (2000) // maximum throttle stick value
@@ -32,6 +33,10 @@
 #define MODE_DEBOUNCE_MS              (500)  // ms, require the MODE channel to be consistently above or below the threshold for at least this long before switching modes
 #define MODE_ACCUMULATING_DEBOUNCE_MS (50)   // ms, when the rising MODE is debouncing/accumulating, require the MODE channel to be below the threshold for at least this long before resetting the debounce timer
 
+#define IDLE_PWM_THRESHOLD            (1500) // if the IDLE channel goes above this value, consider to be in IDLE mode
+#define IDLE_DEBOUNCE_MS              (500)  // ms, require the IDLE channel to be consistently above or below the threshold for at least this long before switching modes
+#define IDLE_ACCUMULATING_DEBOUNCE_MS (50)   // ms, when the IDLE channel is debouncing/accumulating, require the IDLE channel to be below the threshold for at least this long before resetting the debounce timer
+
 #define CAN_STATUS_TX_PERIOD       (10) // ms
 #define CAN_VESC_SET_RPM_TX_PERIOD (3) // ms
 #define CAN_RX_HB_TIMEOUT          (500) // ms, for the heartbeat message
@@ -41,6 +46,8 @@
 #define VESC_ERPM_MAX       (4000)          // Maximum ERPM set in VESC tool
 #define AUTONOMOUS_ERPM_MAX (VESC_ERPM_MAX) // Maximum ERPM allowed in software/autonomous mode. Software allowed to command full range.
 #define RC_ERPM_MAX         (2000)          // Maximum ERPM allowed in RC mode
+
+#define IDLE_ERPM_ACCEL (4000) // ERPM/s, max deceleration when in IDLE
 
 // Really these are half periods b/c it is the rate at which the LED toggles
 #define LED_STARTING_PERIOD           (100)  // ms
