@@ -86,6 +86,12 @@ typedef enum {
 	LOGIC_MODE_RECOVERING,
 } logic_mode_t;
 
+typedef enum {
+	LOGIC_RUNNING_RC = 0,
+	LOGIC_RUNNING_AUTONOMOUS,
+	LOGIC_RUNNING_IDLE,
+} logic_running_submode_t;
+
 
 typedef struct {
 	logic_mode_t mode; // Use logic_switch_mode() for normal mode transitions so last_mode_set_time is updated; direct assignment is only for initialization/internal setup that also handles last_mode_set_time appropriately
@@ -117,6 +123,9 @@ typedef struct {
 void logic_init(logic_state_t* state);
 
 void logic_switch_mode(logic_state_t* state, logic_mode_t new_mode, uint32_t now);
+
+// Only gives a valid result when in LOGIC_MODE_RUNNING, otherwise the result is not useful/valid
+logic_running_submode_t logic_get_running_submode(logic_state_t* state);
 
 // Called AFAP (as fast as possible) in the main loop
 // It is also the only thing called in the main loop

@@ -101,6 +101,21 @@ void logic_switch_mode(logic_state_t* state, logic_mode_t new_mode, uint32_t now
 	state->last_mode_set_time = now;
 }
 
+logic_running_submode_t logic_get_running_submode(logic_state_t* state) {
+	// IDLE mode overpowers autonomous/RC mode
+	bool idle_mode = debounce_controller_get_state(&state->idle_debounce);
+	if (idle_mode) {
+		return LOGIC_RUNNING_IDLE;
+	}
+
+	bool autonomous_mode = debounce_controller_get_state(&state->mode_debounce);
+	if (autonomous_mode) {
+		return LOGIC_RUNNING_AUTONOMOUS;
+	} else {
+		return LOGIC_RUNNING_RC;
+	}
+}
+
 void logic_run(
 	logic_state_t* state,
 	UART_HandleTypeDef* sbus_huart,
@@ -314,18 +329,12 @@ void logic_run(
 		case LOGIC_MODE_PRECHARGING:       led_period = LED_PRECHARGING_PERIOD;       break;
 		case LOGIC_MODE_CONTACTOR_CLOSING: led_period = LED_CONTACTOR_CLOSING_PERIOD; break;
 		case LOGIC_MODE_RUNNING: {
-			bool idle_mode = debounce_controller_get_state(&state->idle_debounce);
-			if (idle_mode) {
-				led_period = LED_RUNNING_IDLE_PERIOD;
-				break;
+			logic_running_submode_t running_submode = logic_get_running_submode(state);
+			switch (running_submode) {
+				case LOGIC_RUNNING_RC:         led_period = LED_RUNNING_RC_PERIOD; break;
+				case LOGIC_RUNNING_AUTONOMOUS: led_period = LED_RUNNING_AUTONOMOUS_PERIOD; break;
+				case LOGIC_RUNNING_IDLE:       led_period = LED_RUNNING_IDLE_PERIOD; break;
 			}
-			bool autonomous_mode = debounce_controller_get_state(&state->mode_debounce);
-			if (autonomous_mode) {
-				led_period = LED_RUNNING_AUTONOMOUS_PERIOD;
-			} else {
-				led_period = LED_RUNNING_RC_PERIOD;
-			}
-			break;
 		}
 		case LOGIC_MODE_ESTOPPED:	       led_period = LED_ESTOPPED_PERIOD;          break;
 		case LOGIC_MODE_RC_DISCONNECTED:   led_period = LED_RC_DISCONNECTED_PERIOD;   break;
