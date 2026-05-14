@@ -55,8 +55,8 @@ void logic_init(logic_state_t* state) {
 	state->output_steering_pwm = STEERING_PWM_CENTER;
 	state->last_can_vesc_set_rpm_tx_time = 0;
 
-	state->last_loop_time = 0;
-	state->now = 0;
+	state->last_loop_time = HAL_GetTick();
+	state->now = HAL_GetTick();
 
 	g_logic_state_ptr = state;
 }
