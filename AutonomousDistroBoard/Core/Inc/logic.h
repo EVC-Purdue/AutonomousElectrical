@@ -44,9 +44,9 @@
 
 #define RC_CONNECTION_TIMEOUT (100) // ms, if we did not get a valid iBUS frame within this time, consider the RC connection to be lost
 
-#define VESC_ERPM_MAX       (4000)          // Maximum ERPM set in VESC tool
+#define VESC_ERPM_MAX       (14218)          // Maximum ERPM set in VESC tool
 #define AUTONOMOUS_ERPM_MAX (VESC_ERPM_MAX) // Maximum ERPM allowed in software/autonomous mode. Software allowed to command full range.
-#define RC_ERPM_MAX         (2000)          // Maximum ERPM allowed in RC mode
+#define RC_ERPM_MAX         (7000)          // Maximum ERPM allowed in RC mode
 
 #define IDLE_ERPM_DECEL (4000)       // ERPM/s, max deceleration (rate of change of ERPM) when in IDLE
 #define IDLE_STEERING_PWM_VEL (1000) // PWM/s, max rate of change of steering when in IDLE
