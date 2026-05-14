@@ -95,6 +95,7 @@ typedef struct {
 	
 	debounce_controller_t estop_debounce; // debounce controller for the remote estop channel
 	debounce_controller_t mode_debounce; // low = RC mode, high = autonomous mode
+	debounce_controller_t idle_debounce; // low = not idle, high = idle
 
 	volatile uint16_t can_current_throttle_erpm; // 0-MAX_ERPM, updated by CAN RX callback
 	volatile uint16_t can_current_steering_pwm; // 1000-2000, updated by CAN RX callback

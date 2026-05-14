@@ -29,6 +29,13 @@ void logic_init(logic_state_t* state) {
 		MODE_DEBOUNCE_MS,
 		MODE_ACCUMULATING_DEBOUNCE_MS
 	);
+	debounce_controller_init(
+		&state->idle_debounce,
+		false,
+		IDLE_DEBOUNCE_MS,
+		IDLE_DEBOUNCE_MS,
+		IDLE_ACCUMULATING_DEBOUNCE_MS
+	);
 
 	ibus_init(&state->ibus);
 	state->last_can_status_tx_time = 0;
@@ -118,6 +125,10 @@ void logic_run(
 		uint16_t mode_channel_value = state->ibus.channels[IBUS_CHANNEL_MODE];
 		bool mode_raw_high = mode_channel_value >= MODE_PWM_THRESHOLD;
 		debounce_controller_update(&state->mode_debounce, mode_raw_high, now);
+
+		uint16_t idle_channel_value = state->ibus.channels[IBUS_CHANNEL_IDLE];
+		bool idle_raw_high = idle_channel_value >= IDLE_PWM_THRESHOLD;
+		debounce_controller_update(&state->idle_debounce, idle_raw_high, now);
 
 		// All states: check remote estop
 		bool estop_debounced_high = debounce_controller_get_state(&state->estop_debounce);
