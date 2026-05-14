@@ -225,7 +225,20 @@ void logic_run(
 				case LOGIC_RUNNING_IDLE: {
 					// Idle mode: ignore throttle and steering inputs
 					// Rate-limited reseting of throttle and steering (throttle to 0, steering to center)
-					// TODO: implement
+					float dt = (state->now - state->last_loop_time) / 1000.0f;
+
+					// Decrease ERPM at a fixed deceleration rate but not below 0
+					int32_t throttle_erpm_change = (int32_t)(IDLE_ERPM_DECEL * dt);
+					state->output_throttle_erpm = (int32_t)max_i32(state->output_throttle_erpm - throttle_erpm_change, 0);
+
+					// Steer towards center at a fixed rate
+					float steering_pwm_change = IDLE_STEERING_PWM_VEL * dt;
+					if (state->output_steering_pwm < STEERING_PWM_CENTER) {
+						state->output_steering_pwm = (uint16_t)min_i32((int32_t)state->output_steering_pwm + (int32_t)steering_pwm_change, STEERING_PWM_CENTER);
+					} else if (state->output_steering_pwm > STEERING_PWM_CENTER) {
+						state->output_steering_pwm = (uint16_t)max_i32((int32_t)state->output_steering_pwm - (int32_t)steering_pwm_change, STEERING_PWM_CENTER);
+					}
+					break;
 				}
 			}
 			break;
