@@ -56,6 +56,11 @@ Note: `CAN_VESC_ID` is set to 7.
 	- Channel: 6 (index 5)
 	- Not pressed: 1000 microseconds pulse width (not activated position)
 	- Pressed: 2000 microseconds pulse width (activated position)
+- Idle switch
+	- Channel: 8 (index 7)
+	- Not idle: 1000 microseconds pulse width (not activated position)
+	- Idle: 2000 microseconds pulse width (activated position)
+	- (Idle = slowly power to a stop)
 
 ## Pin Definitions 
 
