@@ -9,7 +9,7 @@
 
 #define CAN_BUS (CAN2)
 
-#define CAN_VESC_ID (0xFF) // ID_ALL
+#define CAN_VESC_ID (7) // ID of the VESC
 #define CAN_VESC_SET_RPM_MSG_NUM (3)
 #define CAN_VESC_STATUS_1_MSG_NUM (9)
 
