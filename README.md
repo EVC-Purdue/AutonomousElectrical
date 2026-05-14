@@ -10,7 +10,7 @@ Autonomous Project electrical stack code
 ## CAN messages
 
 - ID = `0x100` - **Control commands** (RX)
-	- Byte 0-1: throttle ERPM (uint16_t, little endian), 0-MAX_ERPM (0 = full stop, MAX_ERPM = max speed)
+	- Byte 0-1: throttle ERPM (uint16_t, little endian), 0-AUTONOMOUS_ERPM_MAX (0 = full stop, AUTONOMOUS_ERPM_MAX = max speed)
 	- Byte 2-3: steering representation (uint16_t, little endian), 0-1000, where 500 = straight, 0 = full left, 1000 = full right
 	- Byte 4-7: reserved / future use
 - ID = `0x101` - **Status update** (TX)
