@@ -38,7 +38,9 @@
 
 #define RC_CONNECTION_TIMEOUT (100) // ms, if we did not get a valid iBUS frame within this time, consider the RC connection to be lost
 
-#define VESC_ERPM_MAX (4000)
+#define VESC_ERPM_MAX       (4000)          // Maximum ERPM set in VESC tool
+#define AUTONOMOUS_ERPM_MAX (VESC_ERPM_MAX) // Maximum ERPM allowed in software/autonomous mode. Software allowed to command full range.
+#define RC_ERPM_MAX         (2000)          // Maximum ERPM allowed in RC mode
 
 // Really these are half periods b/c it is the rate at which the LED toggles
 #define LED_STARTING_PERIOD           (100)  // ms
