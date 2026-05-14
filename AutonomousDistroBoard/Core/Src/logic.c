@@ -265,7 +265,10 @@ void logic_run(
 	state->output_throttle_pwm = logic_erpm_to_pwm(state->output_throttle_erpm);
 
 	// Periodically send CAN throttle commands to the VESC
-	if (util_has_elapsed(now, state->last_can_vesc_set_rpm_tx_time, CAN_VESC_SET_RPM_TX_PERIOD)) {
+	if (
+		util_has_elapsed(now, state->last_can_vesc_set_rpm_tx_time, CAN_VESC_SET_RPM_TX_PERIOD) &&
+		HAL_CAN_GetTxMailboxesFreeLevel(hcan) > 0
+	) {
 		can_vesc_set_rpm_msg_t set_rpm_msg = {
 			.erpm = state->output_throttle_erpm
 		};
@@ -278,7 +281,10 @@ void logic_run(
 	__HAL_TIM_SET_COMPARE(steering_htim, TIM_CHANNEL_1, state->output_steering_pwm);
 
 	// Periodically send CAN status messages
-	if (util_has_elapsed(now, state->last_can_status_tx_time, CAN_STATUS_TX_PERIOD)) {
+	if (
+		util_has_elapsed(now, state->last_can_status_tx_time, CAN_STATUS_TX_PERIOD) &&
+		HAL_CAN_GetTxMailboxesFreeLevel(hcan) > 0
+	) {
 		can_status_msg_t status = {
 			.mode = (uint8_t)state->mode,
 			.rc_mode = debounce_controller_get_state(&state->mode_debounce), // if mode_debounce is low, we are in RC mode
