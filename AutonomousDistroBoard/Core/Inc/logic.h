@@ -28,13 +28,13 @@
 #define ESTOP_ACCUMULATING_DEBOUNCE (30) // ms, when the rising ESTOP is debouncing/accumulating, require the ESTOP channel to be below the threshold for at least this long before resetting the debounce timer
 #define ESTOP_FALLING_DEBOUNCE      (300) // ms, require the ESTOP channel to be below the threshold for at least this long before considering the remote estop to be no longer triggered
 
-#define MODE_PWM_THRESHOLD (1500) // if the MODE channel is above this value, consider it to be in autonomous mode, otherwise RC mode
-#define MODE_DEBOUNCE_MS (500) // ms, require the MODE channel to be consistently above or below the threshold for at least this long before switching modes
+#define MODE_PWM_THRESHOLD            (1500) // if the MODE channel is above this value, consider it to be in autonomous mode, otherwise RC mode
+#define MODE_DEBOUNCE_MS              (500) // ms, require the MODE channel to be consistently above or below the threshold for at least this long before switching modes
 #define MODE_ACCUMULATING_DEBOUNCE_MS (50) // ms, when the rising MODE is debouncing/accumulating, require the MODE channel to be below the threshold for at least this long before resetting the debounce timer
 
-#define CAN_STATUS_TX_PERIOD  (10) // ms
+#define CAN_STATUS_TX_PERIOD       (10) // ms
 #define CAN_VESC_SET_RPM_TX_PERIOD (3) // ms
-#define CAN_RX_HB_TIMEOUT (500) // ms, for the heartbeat message
+#define CAN_RX_HB_TIMEOUT          (500) // ms, for the heartbeat message
 
 #define RC_CONNECTION_TIMEOUT (100) // ms, if we did not get a valid iBUS frame within this time, consider the RC connection to be lost
 
