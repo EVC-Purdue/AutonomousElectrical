@@ -340,9 +340,9 @@ void logic_run(
 		case LOGIC_MODE_RUNNING: {
 			logic_running_submode_t running_submode = logic_get_running_submode(state);
 			switch (running_submode) {
-				case LOGIC_RUNNING_RC:         led_period = LED_RUNNING_RC_PERIOD; break;
+				case LOGIC_RUNNING_RC:         led_period = LED_RUNNING_RC_PERIOD;         break;
 				case LOGIC_RUNNING_AUTONOMOUS: led_period = LED_RUNNING_AUTONOMOUS_PERIOD; break;
-				case LOGIC_RUNNING_IDLE:       led_period = LED_RUNNING_IDLE_PERIOD; break;
+				case LOGIC_RUNNING_IDLE:       led_period = LED_RUNNING_IDLE_PERIOD;       break;
 			}
 		}
 		case LOGIC_MODE_ESTOPPED:	       led_period = LED_ESTOPPED_PERIOD;          break;
