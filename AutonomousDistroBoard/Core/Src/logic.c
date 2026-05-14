@@ -106,10 +106,10 @@ void logic_switch_mode(logic_state_t* state, logic_mode_t new_mode, uint32_t now
 
 logic_running_submode_t logic_get_running_submode(logic_state_t* state) {
 	// IDLE mode overpowers autonomous/RC mode
-	bool idle_mode = debounce_controller_get_state(&state->idle_debounce);
-	if (idle_mode) {
-		return LOGIC_RUNNING_IDLE;
-	}
+	// bool idle_mode = debounce_controller_get_state(&state->idle_debounce);
+	// if (idle_mode) {
+	// 	return LOGIC_RUNNING_IDLE;
+	// }
 
 	bool autonomous_mode = debounce_controller_get_state(&state->mode_debounce);
 	if (autonomous_mode) {
