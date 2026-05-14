@@ -190,35 +190,40 @@ void logic_run(
 			HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_RESET);
 			HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_SET);
 
-			// Normal operation!
-
-			bool autonomous_mode = debounce_controller_get_state(&state->mode_debounce);
-
-			// In autonomous mode, ignore iBUS throttle and steering and only use CAN commands
-			if (autonomous_mode) {
-				if (!util_has_elapsed(now, state->last_heartbeat_timestamp, CAN_RX_HB_TIMEOUT)) {
-					// If we have received a heartbeat message recently, consider the CAN connection to be
-					// healthy and use CAN commands for throttle and steering
-					state->output_throttle_erpm = state->can_current_throttle_erpm;
-					state->output_steering_pwm = state->can_current_steering_pwm;
-				} else {
-					// If we have not received a heartbeat message recently, consider the CAN connection to
-					// be lost and switch to CAN_DISCONNECTED mode
-					logic_switch_mode(state, LOGIC_MODE_CAN_DISCONNECTED, now);
-					state->output_throttle_erpm = 0;
-					state->output_steering_pwm = STEERING_PWM_CENTER;
+			logic_running_submode_t running_submode = logic_get_running_submode(state);
+			switch (running_submode) {
+				case LOGIC_RUNNING_RC: {
+					// RC mode: use iBUS inputs for throttle and steering
+					// Don't need to check RC connection here because if it was lost we would
+					// have already switched to RC_DISCONNECTED mode in the earlier check
+					uint16_t ibus_throttle_pwm = state->ibus.channels[IBUS_CHANNEL_THROTTLE];
+					uint16_t ibus_steering_pwm = state->ibus.channels[IBUS_CHANNEL_STEERING];
+					state->output_throttle_erpm = map_i32((int32_t)ibus_throttle_pwm, THROTTLE_STICK_IDLE, THROTTLE_STICK_MAX, 0, RC_ERPM_MAX);
+					state->output_steering_pwm = ibus_steering_pwm; // iBUS steering is already in the form of a PWM value, just pass it through directly
+					break;
 				}
-			} 
-			// In RC mode, ignore CAN commands and only use iBUS throttle and steering
-			else {
-				uint16_t ibus_throttle_pwm = state->ibus.channels[IBUS_CHANNEL_THROTTLE];
-				uint16_t ibus_steering_pwm = state->ibus.channels[IBUS_CHANNEL_STEERING];
-
-				state->output_throttle_erpm = map_i32((int32_t)ibus_throttle_pwm, THROTTLE_STICK_IDLE, THROTTLE_STICK_MAX, 0, RC_ERPM_MAX);
-				state->output_steering_pwm = ibus_steering_pwm; // iBUS steering is already in the form of a PWM value, just pass it through directly
+				case LOGIC_RUNNING_AUTONOMOUS: {
+					// Autonomous mode: use CAN throttle and steering
+					if (!util_has_elapsed(now, state->last_heartbeat_timestamp, CAN_RX_HB_TIMEOUT)) {
+						// If we have received a heartbeat message recently, consider the CAN connection to be
+						// healthy and use CAN commands for throttle and steering
+						state->output_throttle_erpm = state->can_current_throttle_erpm;
+						state->output_steering_pwm = state->can_current_steering_pwm;
+					} else {
+						// If we have not received a heartbeat message recently, consider the CAN connection to
+						// be lost and switch to CAN_DISCONNECTED mode
+						logic_switch_mode(state, LOGIC_MODE_CAN_DISCONNECTED, now);
+						state->output_throttle_erpm = 0;
+						state->output_steering_pwm = STEERING_PWM_CENTER;
+					}
+					break;
+				}
+				case LOGIC_RUNNING_IDLE: {
+					// Idle mode: ignore throttle and steering inputs
+					// Rate-limited reseting of throttle and steering (throttle to 0, steering to center)
+					// TODO: implement
+				}
 			}
-
-
 			break;
 		} //--------------------------------------------------------------------------//
 		case LOGIC_MODE_ESTOPPED: {
