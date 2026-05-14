@@ -34,7 +34,7 @@ bool can_is_able_to_parse(
 	uint32_t expected_id,
 	uint8_t expected_min_dlc
 ) {
-	return (rx_header->IDE == CAN_ID_STD) &&
+	return (rx_header->IDE == (is_ext_id ? CAN_ID_EXT : CAN_ID_STD)) &&
 		   (rx_header->RTR == CAN_RTR_DATA) &&
 		   (is_ext_id ? (rx_header->ExtId == expected_id) : (rx_header->StdId == expected_id)) &&
 		   (rx_header->DLC >= expected_min_dlc);
