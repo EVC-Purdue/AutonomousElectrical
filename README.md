@@ -32,6 +32,8 @@ Autonomous Project electrical stack code
 	- Byte 4-5: VESC current (in 0.1A, so 100 = 10A) (BE)
 	- Byte 6-7: VESC duty cycle (in 0.001, so 1000 = 100%) (BE)
 
+![CAN message flow diagram](./EVC-A26%20CAN%20flow%20path.drawio.png)
+
 ## RC configuration
 
 - Throttle
