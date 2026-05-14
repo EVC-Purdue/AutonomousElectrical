@@ -17,13 +17,13 @@ uint16_t clamp_u16(uint16_t value, uint16_t min, uint16_t max) {
 	}
 }
 
-uint16_t clamp_i32(int32_t value, int32_t min, int32_t max) {
+int32_t clamp_i32(int32_t value, int32_t min, int32_t max) {
 	if (value < min) {
-		return (uint16_t)min;
+		return min;
 	} else if (value > max) {
-		return (uint16_t)max;
+		return max;
 	} else {
-		return (uint16_t)value;
+		return value;
 	}
 }
 
