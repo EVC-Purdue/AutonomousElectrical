@@ -314,6 +314,11 @@ void logic_run(
 		case LOGIC_MODE_PRECHARGING:       led_period = LED_PRECHARGING_PERIOD;       break;
 		case LOGIC_MODE_CONTACTOR_CLOSING: led_period = LED_CONTACTOR_CLOSING_PERIOD; break;
 		case LOGIC_MODE_RUNNING: {
+			bool idle_mode = debounce_controller_get_state(&state->idle_debounce);
+			if (idle_mode) {
+				led_period = LED_RUNNING_IDLE_PERIOD;
+				break;
+			}
 			bool autonomous_mode = debounce_controller_get_state(&state->mode_debounce);
 			if (autonomous_mode) {
 				led_period = LED_RUNNING_AUTONOMOUS_PERIOD;

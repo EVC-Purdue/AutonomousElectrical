@@ -55,6 +55,7 @@
 #define LED_CONTACTOR_CLOSING_PERIOD  (50)   // ms
 #define LED_RUNNING_RC_PERIOD         (1000) // ms
 #define LED_RUNNING_AUTONOMOUS_PERIOD (250)  // ms
+#define LED_RUNNING_IDLE_PERIOD       (125)  // ms
 #define LED_ESTOPPED_PERIOD           (0)    // solid on
 #define LED_RC_DISCONNECTED_PERIOD    (0)    // solid on
 #define LED_CAN_DISCONNECTED_PERIOD   (0)    // solid on
