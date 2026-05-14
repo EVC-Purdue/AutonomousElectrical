@@ -17,6 +17,16 @@ uint16_t clamp_u16(uint16_t value, uint16_t min, uint16_t max) {
 	}
 }
 
+int32_t clamp_i32(int32_t value, int32_t min, int32_t max) {
+	if (value < min) {
+		return min;
+	} else if (value > max) {
+		return max;
+	} else {
+		return value;
+	}
+}
+
 uint16_t map_u16(uint16_t value, uint16_t in_min, uint16_t in_max, uint16_t out_min, uint16_t out_max) {
 	if (in_max == in_min) {
 		// Avoid division by zero; return the midpoint of the output range
@@ -36,7 +46,37 @@ uint16_t map_u16(uint16_t value, uint16_t in_min, uint16_t in_max, uint16_t out_
 	uint32_t num       = (uint32_t)value  - (uint32_t)in_min;
 	uint32_t scaled    = num * range_out;
 
-	return (uint16_t)(scaled / range_in + out_min);
+	return (uint16_t)((scaled + range_in / 2) / range_in + out_min);
+}
+
+int32_t map_i32(int32_t value, int32_t in_min, int32_t in_max, int32_t out_min, int32_t out_max) {
+	if (in_max == in_min) {
+		// Avoid division by zero; return the midpoint of the output range
+		return (out_min + out_max) / 2;
+	}
+
+	// Saturate value to input range to avoid underflow/overflow in arithmetic
+	if (in_min < in_max) {
+		if (value <= in_min) return out_min;
+		if (value >= in_max) return out_max;
+	} else {
+		if (value >= in_min) return out_min;
+		if (value <= in_max) return out_max;
+	}
+
+	int64_t range_in  = (int64_t)in_max  - (int64_t)in_min;
+	int64_t range_out = (int64_t)out_max - (int64_t)out_min;
+	int64_t num       = (int64_t)value  - (int64_t)in_min;
+	int64_t scaled    = num * range_out;
+
+	int64_t offset;
+	if ((scaled >= 0) == (range_in >= 0)) {
+		offset = range_in / 2;
+	} else {
+		offset = -(range_in / 2);
+	}
+
+	return (int32_t)((scaled + offset) / range_in + out_min);
 }
 //----------------------------------------------------------------------------//
 

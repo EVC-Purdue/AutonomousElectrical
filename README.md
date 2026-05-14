@@ -10,8 +10,8 @@ Autonomous Project electrical stack code
 ## CAN messages
 
 - ID = `0x100` - **Control commands** (RX)
-	- Byte 0-1: throttle (uint16_t, little endian), 0-1000, where 1000 = full throttle
-	- Byte 2-3: steering (uint16_t, little endian), 0-1000, where 500 = straight, 0 = full left, 1000 = full right
+	- Byte 0-1: throttle ERPM (uint16_t, little endian), 0-MAX_ERPM (0 = full stop, MAX_ERPM = max speed)
+	- Byte 2-3: steering representation (uint16_t, little endian), 0-1000, where 500 = straight, 0 = full left, 1000 = full right
 	- Byte 4-7: reserved / future use
 - ID = `0x101` - **Status update** (TX)
 	- Byte 0: state machine mode + rc mode
@@ -24,6 +24,15 @@ Autonomous Project electrical stack code
 - ID = `0x102` - **E_Comms heartbeat** (RX)
 	- Byte 0: E_Comms heartbeat counter (uint8_t)
 	- Byte 1-7: reserved / future use
+- ID = `CAN_VESC_MSG_NUM_TO_EXT_ID(3 = CAN_VESC_SET_RPM_MSG_NUM)` (ext id) - **VESC set (E)RPM** (TX)
+ 	- Byte 0-3: desired VESC ERPM (BE)
+ 	- Byte 4-7: reserved
+- ID = `CAN_VESC_MSG_NUM_TO_EXT_ID(9 = CAN_VESC_STATUS_1_MSG_NUM)` (ext id) - **VESC status 1** (RX)
+	- Byte 0-3: VESC ERPM (BE)
+	- Byte 4-5: VESC current (in 0.1A, so 100 = 10A) (BE)
+	- Byte 6-7: VESC duty cycle (in 0.001, so 1000 = 100%) (BE)
+
+![CAN message flow diagram](./EVC-A26%20CAN%20flow%20path.drawio.png)
 
 ## RC configuration
 

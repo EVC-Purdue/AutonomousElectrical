@@ -32,10 +32,13 @@
 #define MODE_DEBOUNCE_MS (500) // ms, require the MODE channel to be consistently above or below the threshold for at least this long before switching modes
 #define MODE_ACCUMULATING_DEBOUNCE_MS (50) // ms, when the rising MODE is debouncing/accumulating, require the MODE channel to be below the threshold for at least this long before resetting the debounce timer
 
-#define CAN_TX_PERIOD  (10) // ms
+#define CAN_STATUS_TX_PERIOD  (10) // ms
+#define CAN_VESC_SET_RPM_TX_PERIOD (3) // ms
 #define CAN_RX_HB_TIMEOUT (500) // ms, for the heartbeat message
 
 #define RC_CONNECTION_TIMEOUT (100) // ms, if we did not get a valid iBUS frame within this time, consider the RC connection to be lost
+
+#define VESC_ERPM_MAX (4000)
 
 // Really these are half periods b/c it is the rate at which the LED toggles
 #define LED_STARTING_PERIOD           (100)  // ms
@@ -79,20 +82,25 @@ typedef struct {
 	uint32_t last_mode_set_time; // HAL_GetTick() timestamp of when we last set the current mode (set not switched)
 
 	ibus_t ibus;
-	uint32_t last_can_tx_time;
+	uint32_t last_can_status_tx_time; // time of the last sent CAN status message (to Jetson/Pi)
 	
 	debounce_controller_t estop_debounce; // debounce controller for the remote estop channel
 	debounce_controller_t mode_debounce; // low = RC mode, high = autonomous mode
 
-	volatile uint16_t can_current_throttle_pwm; // 1000-2000, updated by CAN RX callback
+	volatile uint16_t can_current_throttle_erpm; // 0-MAX_ERPM, updated by CAN RX callback
 	volatile uint16_t can_current_steering_pwm; // 1000-2000, updated by CAN RX callback
 	volatile uint32_t last_control_timestamp; // HAL_GetTick() timestamp of last received control message
 
 	volatile uint8_t heartbeat_counter; // updated by CAN RX callback when we receive a heartbeat message from E_Comms
 	volatile uint32_t last_heartbeat_timestamp; // HAL_GetTick() timestamp of last received heartbeat message from E_Comms
 
-	uint16_t output_throttle_pwm; // 1000-2000, the throttle PWM value that we will output (either from iBUS or CAN depending on mode)
-	uint16_t output_steering_pwm; // 1000-2000, the steering PWM value that we will output (either from iBUS or CAN depending on mode)
+	volatile int32_t vesc_current_erpm; // updated by CAN RX callback when we receive a VESC status 1 message
+	volatile uint32_t vesc_last_status_timestamp; // HAL_GetTick() timestamp of last received VESC status 1 message
+
+	int32_t output_throttle_erpm; // the ERPM value sent to the motor controller in the current/last iteration
+	uint16_t output_throttle_pwm; // 1000-2000, the PWM value sent to the motor controller in the current/last iteration. Always set as a function of output_throttle_erpm.
+	uint16_t output_steering_pwm; // 1000-2000, PWM value sent to the steering servo in the current/last iteration
+	uint32_t last_can_vesc_set_rpm_tx_time; // time of the last sent CAN set (E)RPM message (to VESC)
 } logic_state_t;
 
 void logic_init(logic_state_t* state);
@@ -117,6 +125,14 @@ void logic_handle_control(const can_control_msg_t* cmd);
 // Uses the global static pointer to the logic state, since the CAN callback
 // doesn't have a way to pass user data
 void logic_handle_heartbeat(const can_heartbeat_msg_t* heartbeat);
+
+// Called from CAN RX callback when a VESC status 1 message is received
+// Uses the global static pointer to the logic state, since the CAN callback
+// doesn't have a way to pass user data
+void logic_handle_vesc_status_1(const can_vesc_status_1_msg_t* vesc_status_1);
+
+
+uint16_t logic_erpm_to_pwm(int32_t erpm);
 
 
 
