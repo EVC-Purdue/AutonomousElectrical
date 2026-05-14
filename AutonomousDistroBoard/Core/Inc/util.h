@@ -11,6 +11,7 @@ int32_t clamp_i32(int32_t value, int32_t min, int32_t max);
 uint16_t map_u16(uint16_t value, uint16_t in_min, uint16_t in_max, uint16_t out_min, uint16_t out_max);
 int32_t map_i32(int32_t value, int32_t in_min, int32_t in_max, int32_t out_min, int32_t out_max);
 int32_t max_i32(int32_t a, int32_t b);
+int32_t min_i32(int32_t a, int32_t b);
 
 
 // Option<uint32_t> type -----------------------------------------------------//
