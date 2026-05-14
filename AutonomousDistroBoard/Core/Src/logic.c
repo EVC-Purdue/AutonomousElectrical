@@ -188,7 +188,7 @@ void logic_run(
 				uint16_t ibus_throttle_pwm = state->ibus.channels[IBUS_CHANNEL_THROTTLE];
 				uint16_t ibus_steering_pwm = state->ibus.channels[IBUS_CHANNEL_STEERING];
 
-				state->output_throttle_erpm = map_i32((int32_t)ibus_throttle_pwm, THROTTLE_STICK_IDLE, THROTTLE_STICK_MAX, 0, VESC_ERPM_MAX);
+				state->output_throttle_erpm = map_i32((int32_t)ibus_throttle_pwm, THROTTLE_STICK_IDLE, THROTTLE_STICK_MAX, 0, RC_ERPM_MAX);
 				state->output_steering_pwm = ibus_steering_pwm; // iBUS steering is already in the form of a PWM value, just pass it through directly
 			}
 
@@ -258,7 +258,8 @@ void logic_run(
 	}
 
 	// Clamp the output values to their valid ranges just in case
-	state->output_throttle_erpm = clamp_i32(state->output_throttle_erpm, 0, VESC_ERPM_MAX);
+	bool autonomous_mode = debounce_controller_get_state(&state->mode_debounce);
+	state->output_throttle_erpm = clamp_i32(state->output_throttle_erpm, 0, autonomous_mode ? AUTONOMOUS_ERPM_MAX : RC_ERPM_MAX);
 	state->output_steering_pwm = clamp_u16(state->output_steering_pwm, STEERING_PWM_LOW, STEERING_PWM_HIGH);
 
 	// Set the throttle PWM as a function of the output ERPM

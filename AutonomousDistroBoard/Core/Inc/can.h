@@ -9,7 +9,7 @@
 
 #define CAN_BUS (CAN2)
 
-#define CAN_VESC_ID (0xFF) // ID_ALL
+#define CAN_VESC_ID (7) // ID of the VESC
 #define CAN_VESC_SET_RPM_MSG_NUM (3)
 #define CAN_VESC_STATUS_1_MSG_NUM (9)
 
@@ -17,7 +17,7 @@
 
 
 // - ID = `0x100` - **Control commands** (RX)
-//	- Byte 0-1: throttle ERPM (uint16_t, little endian), 0-MAX_ERPM (0 = full stop, MAX_ERPM = max speed)
+//	- Byte 0-1: throttle ERPM (uint16_t, little endian), 0-AUTONOMOUS_ERPM_MAX (0 = full stop, AUTONOMOUS_ERPM_MAX = max speed)
 // 	- Byte 2-3: steering (uint16_t, little endian), 0-1000, where 1000 = full right, 500 = center, 0 = full left
 // 	- Byte 4-7: reserved / future use
 #define CAN_ID_CONTROL (0x100)
@@ -26,7 +26,7 @@
 #define CAN_STEERING_MIN (0)
 #define CAN_STEERING_MAX (1000)
 typedef struct {
-	uint16_t throttle_erpm; // 0-MAX_ERPM
+	uint16_t throttle_erpm; // 0-AUTONOMOUS_ERPM_MAX
 	uint16_t steering; // 0-1000
 } can_control_msg_t;
 
