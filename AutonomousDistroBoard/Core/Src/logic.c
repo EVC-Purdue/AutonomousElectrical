@@ -224,7 +224,7 @@ void logic_run(
 				}
 				case LOGIC_RUNNING_IDLE: {
 					// Idle mode: ignore throttle and steering inputs
-					// Rate-limited reseting of throttle and steering (throttle to 0, steering to center)
+					// Rate-limited resetting of throttle and steering (throttle to 0, steering to center)
 					float dt = (state->now - state->last_loop_time) / 1000.0f;
 
 					// Decrease ERPM at a fixed deceleration rate but not below 0
