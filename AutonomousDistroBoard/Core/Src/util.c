@@ -125,6 +125,7 @@ void debounce_controller_init(
 	uint32_t accumulating_debounce_ms
 ) {
 	controller->stable_state = initial_state;
+	controller->candidate_state = initial_state;
 	controller->transition_start_time = option_u32_none();
 	controller->interruption_start_time = option_u32_none();
 	controller->debounce_ms = debounce_ms;
@@ -136,6 +137,7 @@ void debounce_controller_reset(
 	debounce_state_t state
 ) {
 	controller->stable_state = state;
+	controller->candidate_state = state;
 	controller->transition_start_time = option_u32_none();
 	controller->interruption_start_time = option_u32_none();
 }
@@ -145,27 +147,52 @@ debounce_state_t debounce_controller_update(
 	debounce_state_t raw_state,
 	uint32_t now
 ) {
+	// Case 1: raw state matches stable state
+	// possible interruption of an in-progress candidate transition
 	if (raw_state == controller->stable_state) {
-		if (option_u32_is_some(controller->transition_start_time)) {
-			if (option_u32_is_none(controller->interruption_start_time)) {
-				controller->interruption_start_time = option_u32_some(now);
-			} else if (util_has_elapsed(now, option_u32_unwrap(controller->interruption_start_time), controller->accumulating_debounce_ms)) {
-				controller->transition_start_time = option_u32_none();
-				controller->interruption_start_time = option_u32_none();
-			}
+		// If no transition is in progress, nothing to do
+		if (option_u32_is_none(controller->transition_start_time)) {
+			return controller->stable_state;
+		}
+
+		// Else, start interruption timer if not already started
+		if (option_u32_is_none(controller->interruption_start_time)) {
+			controller->interruption_start_time = option_u32_some(now);
+			return controller->stable_state;
+		}
+
+		// If stable state persists long enough, abandon candidate transition
+		if (util_has_elapsed(now, option_u32_unwrap(controller->interruption_start_time), controller->accumulating_debounce_ms)) {
+			controller->candidate_state = controller->stable_state;
+			controller->transition_start_time = option_u32_none();
+			controller->interruption_start_time = option_u32_none();
 		}
 
 		return controller->stable_state;
 	}
 
-	if (option_u32_is_none(controller->transition_start_time)) {
-		controller->transition_start_time = option_u32_some(now);
-	}
+	// Case 2: raw state differs from stable state
 
+	// Signal is no longer interrupted
 	controller->interruption_start_time = option_u32_none();
 
-	if (util_has_elapsed(now, option_u32_unwrap(controller->transition_start_time), controller->debounce_ms)) {
-		controller->stable_state = raw_state;
+	// No transition currently in progress
+	if (option_u32_is_none(controller->transition_start_time)) {
+		controller->candidate_state = raw_state;
+		controller->transition_start_time = option_u32_some(now);
+		return controller->stable_state;
+	}
+
+	// Transition already in progress but toward a DIFFERENT candidate
+	if (raw_state != controller->candidate_state) {
+		controller->candidate_state = raw_state;
+		controller->transition_start_time = option_u32_some(now);
+		return controller->stable_state;
+	}
+
+	// Candidate has remained active long enough
+	if (util_has_elapsed( now, option_u32_unwrap(controller->transition_start_time), controller->debounce_ms)) {
+		controller->stable_state = controller->candidate_state;
 		controller->transition_start_time = option_u32_none();
 		controller->interruption_start_time = option_u32_none();
 	}

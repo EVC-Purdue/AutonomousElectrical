@@ -34,11 +34,12 @@ uint32_t option_u32_unwrap(option_u32_t opt); // only call if opt is known to be
 // to help filter out noise that causes multiple rapid transitions
 typedef int16_t debounce_state_t;
 typedef struct {
-	debounce_state_t stable_state; // current accepted state
-	option_u32_t transition_start_time; // when a possible transition began
+	debounce_state_t stable_state;        // current accepted state
+	debounce_state_t candidate_state;     // state currently being considered for transition
+	option_u32_t transition_start_time;   // when a possible transition began
 	option_u32_t interruption_start_time; // when signal temporarily flipped back
 	uint32_t debounce_ms; // configuration parameter: how long the signal needs to be continuous in the state before accepting the transition
-	uint32_t accumulating_debounce_ms; // If a transition toward a new candidate state is in progress and the
+	uint32_t accumulating_debounce_ms; // configuration parameter: If a transition toward a new candidate state is in progress and the
 									   // signal temporarily returns to the currently stable state, require it
 									   // to remain in the stable state for this duration before abandoning the
 									   // in-progress transition. Helps reject noisy oscillations.
