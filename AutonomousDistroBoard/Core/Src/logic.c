@@ -330,6 +330,9 @@ void logic_run(
 		state->last_can_status_tx_time = state->now;
 	}
 
+	uint32_t error = HAL_CAN_GetError(hcan);
+	state->err = error;
+
 	// Blink LED
 	uint16_t led_period = 0;
 	switch (state->mode) {

@@ -123,6 +123,8 @@ typedef struct {
 
 	uint32_t last_loop_time; // HAL_GetTick() timestamp of the start of the last logic_run() iteration, used for calculation of delta time in IDLE deceleration and steering rate limiting
 	uint32_t now; // HAL_GetTick() timestamp of the current logic_run() iteration, used for all timeouts and timing-related logic in logic_run() and to set last_loop_time
+
+	uint32_t err;
 } logic_state_t;
 
 void logic_init(logic_state_t* state);
