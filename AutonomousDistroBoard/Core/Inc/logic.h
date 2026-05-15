@@ -18,25 +18,24 @@
 
 #define IBUS_CHANNEL_THROTTLE (1) // 1500 = full stop, 2000 = full throttle forward
 #define IBUS_CHANNEL_STEERING (3) // 1000 = full left, 1500 = center, 2000 = full right
-#define IBUS_CHANNEL_MODE     (4) // ~1000 = RC mode, ~2000 = autonomous mode
+#define IBUS_CHANNEL_MODE     (4) // ~1000 = RC mode, ~1500 = autonomous mode, ~2000 = IDLE mode
 #define IBUS_CHANNEL_ESTOP    (5) // ~1000 = not pressed, ~2000 = estop
-#define IBUS_CHANNEL_IDLE     (7) // ~1000 = not idle, ~2000 = idle
 
 #define THROTTLE_STICK_IDLE (1500) // throttle stick resting value
 #define THROTTLE_STICK_MAX  (2000) // maximum throttle stick value
 
-#define ESTOP_PWM_THRESHOLD         (1500) // if the ESTOP channel goes above this value, consider the remote estop to be triggered
-#define ESTOP_RISING_DEBOUNCE       (300)  // ms, require the ESTOP channel to be above the threshold for at least this long before considering the remote estop to be triggered
-#define ESTOP_ACCUMULATING_DEBOUNCE (30)   // ms, when the rising ESTOP is debouncing/accumulating, require the ESTOP channel to be below the threshold for at least this long before resetting the debounce timer
-#define ESTOP_FALLING_DEBOUNCE      (300)  // ms, require the ESTOP channel to be below the threshold for at least this long before considering the remote estop to be no longer triggered
+#define SW_ESTOP_PWM_THRESHOLD         (1500) // if the ESTOP channel goes above this value, consider the remote estop to be triggered
+#define SW_ESTOP_DEBOUNCE              (200)  // ms, require the ESTOP channel to be above the threshold for at least this long before considering the remote estop to be triggered
+#define SW_ESTOP_ACCUMULATING_DEBOUNCE (30)   // ms, when the rising ESTOP is debouncing/accumulating, require the ESTOP channel to be below the threshold for at least this long before resetting the debounce timer
+#define SW_ESTOP_STATE_LOW              (0)   // the value ESTOP low correlates to in relation to the debounce controller
+#define SW_ESTOP_STATE_HIGH             (1)   // the value ESTOP high correlates to in relation to the debounce controller
 
-#define MODE_PWM_THRESHOLD            (1500) // if the MODE channel is above this value, consider it to be in autonomous mode, otherwise RC mode
-#define MODE_DEBOUNCE_MS              (500)  // ms, require the MODE channel to be consistently above or below the threshold for at least this long before switching modes
-#define MODE_ACCUMULATING_DEBOUNCE_MS (50)   // ms, when the rising MODE is debouncing/accumulating, require the MODE channel to be below the threshold for at least this long before resetting the debounce timer
-
-#define IDLE_PWM_THRESHOLD            (1500) // if the IDLE channel goes above this value, consider to be in IDLE mode
-#define IDLE_DEBOUNCE_MS              (500)  // ms, require the IDLE channel to be consistently above or below the threshold for at least this long before switching modes
-#define IDLE_ACCUMULATING_DEBOUNCE_MS (50)   // ms, when the IDLE channel is debouncing/accumulating, require the IDLE channel to be below the threshold for at least this long before resetting the debounce timer
+#define SW_MODE_RC_PWM_VALUE             (1000) // the value to map the MODE channel to when in RC mode
+#define SW_MODE_AUTONOMOUS_PWM_VALUE     (1500) // the value to map the MODE channel to when in autonomous mode
+#define SW_MODE_IDLE_PWM_VALUE           (2000) // the value to map the MODE channel to when in IDLE mode
+#define SW_MODE_PWM_TOLERANCE            (100)  // the range above and below the target MODE channel values to still consider it a valid reading for that mode
+#define SW_MODE_DEBOUNCE_MS              (200)  // ms, require the MODE channel to be consistently in a valid range for at least this long before switching modes
+#define SW_MODE_ACCUMULATING_DEBOUNCE_MS (30)   // ms, when the MODE channel is debouncing/accumulating, require it to be out of the valid range for the target mode for at least this long before resetting the debounce timer
 
 #define CAN_STATUS_TX_PERIOD       (10) // ms
 #define CAN_VESC_SET_RPM_TX_PERIOD (3) // ms
@@ -44,9 +43,9 @@
 
 #define RC_CONNECTION_TIMEOUT (100) // ms, if we did not get a valid iBUS frame within this time, consider the RC connection to be lost
 
-#define VESC_ERPM_MAX       (4000)          // Maximum ERPM set in VESC tool
+#define VESC_ERPM_MAX       (14218)          // Maximum ERPM set in VESC tool (12 meters/second)
 #define AUTONOMOUS_ERPM_MAX (VESC_ERPM_MAX) // Maximum ERPM allowed in software/autonomous mode. Software allowed to command full range.
-#define RC_ERPM_MAX         (2000)          // Maximum ERPM allowed in RC mode
+#define RC_ERPM_MAX         (7000)          // Maximum ERPM allowed in RC mode (~6 meters/second)
 
 #define IDLE_ERPM_DECEL (4000)       // ERPM/s, max deceleration (rate of change of ERPM) when in IDLE
 #define IDLE_STEERING_PWM_VEL (1000) // PWM/s, max rate of change of steering when in IDLE
@@ -91,9 +90,9 @@ typedef enum {
 } logic_mode_t;
 
 typedef enum {
-	LOGIC_RUNNING_RC = 0,
-	LOGIC_RUNNING_AUTONOMOUS,
-	LOGIC_RUNNING_IDLE,
+	LOGIC_RUNNING_RC         = 0,
+	LOGIC_RUNNING_AUTONOMOUS = 1,
+	LOGIC_RUNNING_IDLE       = 2,
 } logic_running_submode_t;
 
 
@@ -105,8 +104,7 @@ typedef struct {
 	uint32_t last_can_status_tx_time; // time of the last sent CAN status message (to Jetson/Pi)
 	
 	debounce_controller_t estop_debounce; // debounce controller for the remote estop channel
-	debounce_controller_t mode_debounce; // low = RC mode, high = autonomous mode
-	debounce_controller_t idle_debounce; // low = not idle, high = idle
+	debounce_controller_t mode_debounce; // debounce controller for the remote mode channel
 
 	volatile uint16_t can_current_throttle_erpm; // 0-MAX_ERPM, updated by CAN RX callback
 	volatile uint16_t can_current_steering_pwm; // 1000-2000, updated by CAN RX callback
@@ -131,8 +129,9 @@ void logic_init(logic_state_t* state);
 
 void logic_switch_mode(logic_state_t* state, logic_mode_t new_mode, uint32_t now);
 
-// Only gives a valid result when in LOGIC_MODE_RUNNING, otherwise the result is not useful/valid
-logic_running_submode_t logic_get_running_submode(logic_state_t* state);
+// Convert the 3-position MODE switch PWM value to the corresponding logic_running_submode_t value
+// Returns IDLE if the value doesn't match any range
+logic_running_submode_t pwm_value_to_running_submode(uint16_t mode_pwm_value);
 
 // Called AFAP (as fast as possible) in the main loop
 // It is also the only thing called in the main loop
