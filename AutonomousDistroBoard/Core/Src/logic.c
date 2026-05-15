@@ -100,9 +100,11 @@ logic_running_submode_t pwm_value_to_running_submode(uint16_t mode_pwm_value) {
 		return LOGIC_RUNNING_IDLE;
 	} else if (mode_pwm_value >= SW_MODE_AUTONOMOUS_PWM_VALUE - SW_MODE_PWM_TOLERANCE && mode_pwm_value <= SW_MODE_AUTONOMOUS_PWM_VALUE + SW_MODE_PWM_TOLERANCE) {
 		return LOGIC_RUNNING_AUTONOMOUS;
-	} else {
-		// Default to RC if it doesn't match any, including if it is in between the expected values
+	} else if (mode_pwm_value >= SW_MODE_RC_PWM_VALUE - SW_MODE_PWM_TOLERANCE && mode_pwm_value <= SW_MODE_RC_PWM_VALUE + SW_MODE_PWM_TOLERANCE) {
 		return LOGIC_RUNNING_RC;
+	} else {
+		// If the value doesn't match any known submode, default to IDLE (safety choice, slowly stop)
+		return LOGIC_RUNNING_IDLE;
 	}
 }
 
