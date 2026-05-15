@@ -48,19 +48,15 @@ Note: `CAN_VESC_ID` is set to 7.
 	- At center position: 1500 microseconds pulse width
 	- At full right: 2000 microseconds pulse width
 	- At full left: 1000 microseconds pulse width
-- Mode switch
+- Mode switch (3 position switch)
 	- Channel: 5 (index 4)
 	- In RC mode: 1000 microseconds pulse width (not activated posistion)
-	- In autonomous mode: 2000 microseconds pulse width (activated position)
+	- In autonomous mode: 1500 microseconds pulse width (middle position)
+	- In IDLE mode: 2000 microseconds pulse width (activated position)
 - E-Stop switch
 	- Channel: 6 (index 5)
 	- Not pressed: 1000 microseconds pulse width (not activated position)
 	- Pressed: 2000 microseconds pulse width (activated position)
-- Idle switch
-	- Channel: 8 (index 7)
-	- Not idle: 1000 microseconds pulse width (not activated position)
-	- Idle: 2000 microseconds pulse width (activated position)
-	- (Idle = slowly power to a stop)
 
 ## Pin Definitions 
 
