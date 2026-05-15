@@ -78,6 +78,8 @@ void logic_run(
 	TIM_HandleTypeDef* throttle_htim,
 	TIM_HandleTypeDef* steering_htim
 ) {
+	logic_mode_t loop_start_mode = state->mode;
+
 	// Process iBUS data
 	ibus_process(&state->ibus, sbus_huart);
 
@@ -252,8 +254,9 @@ void logic_run(
 	__HAL_TIM_SET_COMPARE(throttle_htim, TIM_CHANNEL_1, state->output_throttle_pwm);
 	__HAL_TIM_SET_COMPARE(steering_htim, TIM_CHANNEL_1, state->output_steering_pwm);
 
-	// Periodically send CAN status messages
-	if (util_has_elapsed(now, state->last_can_tx_time, CAN_TX_PERIOD)) {
+	// Periodically send CAN status messages or if state changed
+	bool state_changed = loop_start_mode != state->mode;
+	if (util_has_elapsed(now, state->last_can_tx_time, CAN_TX_PERIOD) || state_changed) {
 		can_status_msg_t status = {
 			.mode = (uint8_t)state->mode,
 			.rc_mode = debounce_controller_get_state(&state->mode_debounce), // if mode_debounce is low, we are in RC mode
