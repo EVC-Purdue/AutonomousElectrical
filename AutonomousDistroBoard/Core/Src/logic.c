@@ -243,6 +243,12 @@ void logic_run(
 	state->output_throttle_pwm = clamp_u16(state->output_throttle_pwm, THROTTLE_PWM_LOW, THROTTLE_PWM_HIGH);
 	state->output_steering_pwm = clamp_u16(state->output_steering_pwm, STEERING_PWM_LOW, STEERING_PWM_HIGH);
 
+	// Steering deadband
+	bool within_deadband = ABS((int16_t)state->output_steering_pwm - STEERING_PWM_CENTER) <= STEERING_PWM_DEADBAND;
+	if (within_deadband) {
+		state->output_steering_pwm = STEERING_PWM_CENTER;
+	}
+
 	__HAL_TIM_SET_COMPARE(throttle_htim, TIM_CHANNEL_1, state->output_throttle_pwm);
 	__HAL_TIM_SET_COMPARE(steering_htim, TIM_CHANNEL_1, state->output_steering_pwm);
 

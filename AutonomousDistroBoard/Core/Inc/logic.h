@@ -53,6 +53,8 @@
 #define STEERING_PWM_LOW  (1000)
 #define STEERING_PWM_HIGH (2000)
 #define STEERING_PWM_CENTER ((STEERING_PWM_LOW + STEERING_PWM_HIGH) / 2)
+#define STEERING_PWM_DEADBAND (5) // If the steering PWM is within this many of the center, just center it
+#define ABS(x) ((x) < 0 ? -(x) : (x))
 
 #define THROTTLE_PWM_GPIO_Port (GPIOB)
 #define THROTTLE_PWM_Pin (GPIO_PIN_9)
