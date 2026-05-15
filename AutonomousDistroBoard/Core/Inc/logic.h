@@ -104,7 +104,7 @@ typedef struct {
 	uint32_t last_can_status_tx_time; // time of the last sent CAN status message (to Jetson/Pi)
 	
 	debounce_controller_t estop_debounce; // debounce controller for the remote estop channel
-	debounce_controller_t mode_debounce; // debounce controller for the remove mode channel
+	debounce_controller_t mode_debounce; // debounce controller for the remote mode channel
 
 	volatile uint16_t can_current_throttle_erpm; // 0-MAX_ERPM, updated by CAN RX callback
 	volatile uint16_t can_current_steering_pwm; // 1000-2000, updated by CAN RX callback
