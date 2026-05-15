@@ -38,8 +38,10 @@ typedef struct {
 	option_u32_t transition_start_time; // when a possible transition began
 	option_u32_t interruption_start_time; // when signal temporarily flipped back
 	uint32_t debounce_ms; // configuration parameter: how long the signal needs to be continuous in the state before accepting the transition
-	uint32_t accumulating_debounce_ms; // configuration parameter: when a rising transition is in the debounce period, if the signal goes low again,
-	                                   // require it to be continuously low for this long before resetting the debounce timer (helps filter out noise that causes multiple rapid transitions)
+	uint32_t accumulating_debounce_ms; // If a transition toward a new candidate state is in progress and the
+									   // signal temporarily returns to the currently stable state, require it
+									   // to remain in the stable state for this duration before abandoning the
+									   // in-progress transition. Helps reject noisy oscillations.
 } debounce_controller_t;
 
 void debounce_controller_init(
