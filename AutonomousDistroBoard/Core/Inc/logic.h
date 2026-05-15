@@ -39,6 +39,11 @@
 #define SW_MODE_STATE_RC		         (0)     // the value MODE low correlates to in relation to the debounce controller
 #define SW_MODE_STATE_AUTONOMOUS	     (1)     // the value MODE high correlates to in relation to the debounce controller
 #define SW_MODE_STATE_IDLE               (2)     // the value MODE in the idle range correlates to in relation to the debounce controller
+#define SW_MODE_PWM_VALUE_TO_STATE(pwm_value) ( \
+	(pwm_value >= SW_MODE_IDLE_PWM_VALUE - SW_MODE_PWM_TOLERANCE && pwm_value <= SW_MODE_IDLE_PWM_VALUE + SW_MODE_PWM_TOLERANCE) ? SW_MODE_STATE_IDLE : \
+	(pwm_value >= SW_MODE_AUTONOMOUS_PWM_VALUE - SW_MODE_PWM_TOLERANCE && pwm_value <= SW_MODE_AUTONOMOUS_PWM_VALUE + SW_MODE_PWM_TOLERANCE) ? SW_MODE_STATE_AUTONOMOUS : \
+	SW_MODE_STATE_RC /* default to RC if it doesn't match any, including if it is in between the expected values */ \
+)
 
 #define CAN_STATUS_TX_PERIOD       (10) // ms
 #define CAN_VESC_SET_RPM_TX_PERIOD (3) // ms

@@ -17,24 +17,15 @@ void logic_init(logic_state_t* state) {
 	
 	debounce_controller_init(
 		&state->estop_debounce,
-		false,
-		ESTOP_RISING_DEBOUNCE,
-		ESTOP_FALLING_DEBOUNCE,
-		ESTOP_ACCUMULATING_DEBOUNCE
+		SW_ESTOP_STATE_LOW,
+		SW_ESTOP_DEBOUNCE,
+		SW_ESTOP_ACCUMULATING_DEBOUNCE
 	);
 	debounce_controller_init(
 		&state->mode_debounce,
-		false,
-		MODE_DEBOUNCE_MS,
-		MODE_DEBOUNCE_MS,
-		MODE_ACCUMULATING_DEBOUNCE_MS
-	);
-	debounce_controller_init(
-		&state->idle_debounce,
-		false,
-		IDLE_DEBOUNCE_MS,
-		IDLE_DEBOUNCE_MS,
-		IDLE_ACCUMULATING_DEBOUNCE_MS
+		SW_MODE_STATE_RC,
+		SW_MODE_DEBOUNCE_MS,
+		SW_MODE_ACCUMULATING_DEBOUNCE_MS
 	);
 
 	ibus_init(&state->ibus);
@@ -104,21 +95,6 @@ void logic_switch_mode(logic_state_t* state, logic_mode_t new_mode, uint32_t now
 	state->last_mode_set_time = now;
 }
 
-logic_running_submode_t logic_get_running_submode(logic_state_t* state) {
-	// IDLE mode overpowers autonomous/RC mode
-	// bool idle_mode = debounce_controller_get_state(&state->idle_debounce);
-	// if (idle_mode) {
-	// 	return LOGIC_RUNNING_IDLE;
-	// }
-
-	bool autonomous_mode = debounce_controller_get_state(&state->mode_debounce);
-	if (autonomous_mode) {
-		return LOGIC_RUNNING_AUTONOMOUS;
-	} else {
-		return LOGIC_RUNNING_RC;
-	}
-}
-
 void logic_run(
 	logic_state_t* state,
 	UART_HandleTypeDef* sbus_huart,
@@ -138,20 +114,17 @@ void logic_run(
 	} else {
 		// All states: update RC debounce controllers
 		uint16_t estop_channel_value = state->ibus.channels[IBUS_CHANNEL_ESTOP];
-		bool estop_raw_high = estop_channel_value >= ESTOP_PWM_THRESHOLD;
-		debounce_controller_update(&state->estop_debounce, estop_raw_high, state->now);
+		bool is_estop_high = estop_channel_value >= SW_ESTOP_PWM_THRESHOLD;
+		debounce_state_t estop_raw = is_estop_high ? SW_ESTOP_STATE_HIGH : SW_ESTOP_STATE_LOW;
+		debounce_controller_update(&state->estop_debounce, estop_raw, state->now);
 
 		uint16_t mode_channel_value = state->ibus.channels[IBUS_CHANNEL_MODE];
-		bool mode_raw_high = mode_channel_value >= MODE_PWM_THRESHOLD;
-		debounce_controller_update(&state->mode_debounce, mode_raw_high, state->now);
-
-		uint16_t idle_channel_value = state->ibus.channels[IBUS_CHANNEL_IDLE];
-		bool idle_raw_high = idle_channel_value >= IDLE_PWM_THRESHOLD;
-		debounce_controller_update(&state->idle_debounce, idle_raw_high, state->now);
+		debounce_state_t mode_raw = SW_MODE_PWM_VALUE_TO_STATE(mode_channel_value);
+		debounce_controller_update(&state->mode_debounce, mode_raw, state->now);
 
 		// All states: check remote estop
-		bool estop_debounced_high = debounce_controller_get_state(&state->estop_debounce);
-		if (estop_debounced_high) {
+		debounce_state_t estop_debounced = debounce_controller_get_state(&state->estop_debounce);
+		if (estop_debounced != SW_ESTOP_STATE_LOW) {
 			logic_switch_mode(state, LOGIC_MODE_ESTOPPED, state->now);
 			// Note: if it was high and remains high, we want to continue to force
 		}
@@ -250,8 +223,8 @@ void logic_run(
 			state->output_throttle_erpm = 0;
 			state->output_steering_pwm = STEERING_PWM_CENTER;
 
-			bool estop_debounced_high = debounce_controller_get_state(&state->estop_debounce);
-			if (!estop_debounced_high) {
+			debounce_state_t estop_debounced = debounce_controller_get_state(&state->estop_debounce);
+			if (estop_debounced == SW_ESTOP_STATE_LOW) {
 				logic_switch_mode(state, LOGIC_MODE_RECOVERING, state->now);
 			}
 			break;
@@ -276,11 +249,8 @@ void logic_run(
 			state->output_throttle_erpm = 0;
 			state->output_steering_pwm = STEERING_PWM_CENTER;
 
-			uint16_t mode_channel_value = state->ibus.channels[IBUS_CHANNEL_MODE];
-			bool mode_raw_high = mode_channel_value >= MODE_PWM_THRESHOLD;
-			debounce_controller_update(&state->mode_debounce, mode_raw_high, state->now);
-
-			bool autonomous_mode = debounce_controller_get_state(&state->mode_debounce);
+			debounce_state_t mode_debounced = debounce_controller_get_state(&state->mode_debounce);
+			bool autonomous_mode = mode_debounced == SW_MODE_STATE_AUTONOMOUS;
 			bool can_connection_ok = !util_has_elapsed(state->now, state->last_heartbeat_timestamp, CAN_RX_HB_TIMEOUT);
 			bool ibus_connection_ok = ibus_is_connected(&state->ibus, state->now, RC_CONNECTION_TIMEOUT);
 
@@ -306,8 +276,9 @@ void logic_run(
 	}
 
 	// Clamp the output values to their valid ranges just in case
-	bool autonomous_mode = debounce_controller_get_state(&state->mode_debounce);
-	state->output_throttle_erpm = clamp_i32(state->output_throttle_erpm, 0, autonomous_mode ? AUTONOMOUS_ERPM_MAX : RC_ERPM_MAX);
+	debounce_state_t mode_debounced = debounce_controller_get_state(&state->mode_debounce);
+	bool non_rc_mode = mode_debounced != SW_MODE_STATE_RC;
+	state->output_throttle_erpm = clamp_i32(state->output_throttle_erpm, 0, non_rc_mode ? AUTONOMOUS_ERPM_MAX : RC_ERPM_MAX);
 	state->output_steering_pwm = clamp_u16(state->output_steering_pwm, STEERING_PWM_LOW, STEERING_PWM_HIGH);
 
 	// Set the throttle PWM as a function of the output ERPM
@@ -336,7 +307,7 @@ void logic_run(
 	) {
 		can_status_msg_t status = {
 			.mode = (uint8_t)state->mode,
-			.rc_mode = debounce_controller_get_state(&state->mode_debounce), // if mode_debounce is low, we are in RC mode
+			.rc_mode = debounce_controller_get_state(&state->mode_debounce),
 			.throttle_pwm = state->output_throttle_pwm,
 			.steering_pwm = state->output_steering_pwm
 		};
