@@ -23,7 +23,7 @@ void logic_init(logic_state_t* state) {
 	);
 	debounce_controller_init(
 		&state->mode_debounce,
-		SW_MODE_STATE_RC,
+		LOGIC_RUNNING_RC,
 		SW_MODE_DEBOUNCE_MS,
 		SW_MODE_ACCUMULATING_DEBOUNCE_MS
 	);
@@ -95,6 +95,17 @@ void logic_switch_mode(logic_state_t* state, logic_mode_t new_mode, uint32_t now
 	state->last_mode_set_time = now;
 }
 
+logic_running_submode_t pwm_value_to_running_submode(uint16_t mode_pwm_value) {
+	if (mode_pwm_value >= SW_MODE_IDLE_PWM_VALUE - SW_MODE_PWM_TOLERANCE && mode_pwm_value <= SW_MODE_IDLE_PWM_VALUE + SW_MODE_PWM_TOLERANCE) {
+		return LOGIC_RUNNING_IDLE;
+	} else if (mode_pwm_value >= SW_MODE_AUTONOMOUS_PWM_VALUE - SW_MODE_PWM_TOLERANCE && mode_pwm_value <= SW_MODE_AUTONOMOUS_PWM_VALUE + SW_MODE_PWM_TOLERANCE) {
+		return LOGIC_RUNNING_AUTONOMOUS;
+	} else {
+		// Default to RC if it doesn't match any, including if it is in between the expected values
+		return LOGIC_RUNNING_RC;
+	}
+}
+
 void logic_run(
 	logic_state_t* state,
 	UART_HandleTypeDef* sbus_huart,
@@ -119,7 +130,7 @@ void logic_run(
 		debounce_controller_update(&state->estop_debounce, estop_raw, state->now);
 
 		uint16_t mode_channel_value = state->ibus.channels[IBUS_CHANNEL_MODE];
-		debounce_state_t mode_raw = SW_MODE_PWM_VALUE_TO_STATE(mode_channel_value);
+		debounce_state_t mode_raw = pwm_value_to_running_submode(mode_channel_value);
 		debounce_controller_update(&state->mode_debounce, mode_raw, state->now);
 
 		// All states: check remote estop
@@ -167,7 +178,7 @@ void logic_run(
 			HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_RESET);
 			HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_SET);
 
-			logic_running_submode_t running_submode = logic_get_running_submode(state);
+			logic_running_submode_t running_submode = (logic_running_submode_t)debounce_controller_get_state(&state->mode_debounce);
 			switch (running_submode) {
 				case LOGIC_RUNNING_RC: {
 					// RC mode: use iBUS inputs for throttle and steering
@@ -249,8 +260,8 @@ void logic_run(
 			state->output_throttle_erpm = 0;
 			state->output_steering_pwm = STEERING_PWM_CENTER;
 
-			debounce_state_t mode_debounced = debounce_controller_get_state(&state->mode_debounce);
-			bool autonomous_mode = mode_debounced == SW_MODE_STATE_AUTONOMOUS;
+			debounce_state_t mode_debounced = (logic_running_submode_t)debounce_controller_get_state(&state->mode_debounce);
+			bool autonomous_mode = mode_debounced == LOGIC_RUNNING_AUTONOMOUS;
 			bool can_connection_ok = !util_has_elapsed(state->now, state->last_heartbeat_timestamp, CAN_RX_HB_TIMEOUT);
 			bool ibus_connection_ok = ibus_is_connected(&state->ibus, state->now, RC_CONNECTION_TIMEOUT);
 
@@ -276,8 +287,8 @@ void logic_run(
 	}
 
 	// Clamp the output values to their valid ranges just in case
-	debounce_state_t mode_debounced = debounce_controller_get_state(&state->mode_debounce);
-	bool non_rc_mode = mode_debounced != SW_MODE_STATE_RC;
+	logic_running_submode_t mode_debounced = debounce_controller_get_state(&state->mode_debounce);
+	bool non_rc_mode = mode_debounced != LOGIC_RUNNING_RC;
 	state->output_throttle_erpm = clamp_i32(state->output_throttle_erpm, 0, non_rc_mode ? AUTONOMOUS_ERPM_MAX : RC_ERPM_MAX);
 	state->output_steering_pwm = clamp_u16(state->output_steering_pwm, STEERING_PWM_LOW, STEERING_PWM_HIGH);
 
@@ -322,7 +333,7 @@ void logic_run(
 		case LOGIC_MODE_PRECHARGING:       led_period = LED_PRECHARGING_PERIOD;       break;
 		case LOGIC_MODE_CONTACTOR_CLOSING: led_period = LED_CONTACTOR_CLOSING_PERIOD; break;
 		case LOGIC_MODE_RUNNING: {
-			logic_running_submode_t running_submode = logic_get_running_submode(state);
+			logic_running_submode_t running_submode = (logic_running_submode_t)debounce_controller_get_state(&state->mode_debounce);
 			switch (running_submode) {
 				case LOGIC_RUNNING_RC:         led_period = LED_RUNNING_RC_PERIOD;         break;
 				case LOGIC_RUNNING_AUTONOMOUS: led_period = LED_RUNNING_AUTONOMOUS_PERIOD; break;

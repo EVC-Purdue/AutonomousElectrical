@@ -36,14 +36,6 @@
 #define SW_MODE_PWM_TOLERANCE            (100)  // the range above and below the target MODE channel values to still consider it a valid reading for that mode
 #define SW_MODE_DEBOUNCE_MS              (200)  // ms, require the MODE channel to be consistently in a valid range for at least this long before switching modes
 #define SW_MODE_ACCUMULATING_DEBOUNCE_MS (30)   // ms, when the MODE channel is debouncing/accumulating, require it to be out of the valid range for the target mode for at least this long before resetting the debounce timer
-#define SW_MODE_STATE_RC		         (0)     // the value MODE low correlates to in relation to the debounce controller
-#define SW_MODE_STATE_AUTONOMOUS	     (1)     // the value MODE high correlates to in relation to the debounce controller
-#define SW_MODE_STATE_IDLE               (2)     // the value MODE in the idle range correlates to in relation to the debounce controller
-#define SW_MODE_PWM_VALUE_TO_STATE(pwm_value) ( \
-	(pwm_value >= SW_MODE_IDLE_PWM_VALUE - SW_MODE_PWM_TOLERANCE && pwm_value <= SW_MODE_IDLE_PWM_VALUE + SW_MODE_PWM_TOLERANCE) ? SW_MODE_STATE_IDLE : \
-	(pwm_value >= SW_MODE_AUTONOMOUS_PWM_VALUE - SW_MODE_PWM_TOLERANCE && pwm_value <= SW_MODE_AUTONOMOUS_PWM_VALUE + SW_MODE_PWM_TOLERANCE) ? SW_MODE_STATE_AUTONOMOUS : \
-	SW_MODE_STATE_RC /* default to RC if it doesn't match any, including if it is in between the expected values */ \
-)
 
 #define CAN_STATUS_TX_PERIOD       (10) // ms
 #define CAN_VESC_SET_RPM_TX_PERIOD (3) // ms
@@ -98,9 +90,9 @@ typedef enum {
 } logic_mode_t;
 
 typedef enum {
-	LOGIC_RUNNING_RC = 0,
-	LOGIC_RUNNING_AUTONOMOUS,
-	LOGIC_RUNNING_IDLE,
+	LOGIC_RUNNING_RC         = 0,
+	LOGIC_RUNNING_AUTONOMOUS = 1,
+	LOGIC_RUNNING_IDLE       = 2,
 } logic_running_submode_t;
 
 
@@ -138,7 +130,7 @@ void logic_init(logic_state_t* state);
 void logic_switch_mode(logic_state_t* state, logic_mode_t new_mode, uint32_t now);
 
 // Only gives a valid result when in LOGIC_MODE_RUNNING, otherwise the result is not useful/valid
-logic_running_submode_t logic_get_running_submode(logic_state_t* state);
+logic_running_submode_t pwm_value_to_running_submode(uint16_t mode_pwm_value);
 
 // Called AFAP (as fast as possible) in the main loop
 // It is also the only thing called in the main loop
