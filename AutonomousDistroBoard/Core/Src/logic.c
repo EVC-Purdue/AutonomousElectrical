@@ -317,8 +317,8 @@ void logic_run(
 		HAL_CAN_GetTxMailboxesFreeLevel(hcan) > 0
 	) {
 		can_status_msg_t status = {
-			.mode = (uint8_t)state->mode,
-			.rc_mode = debounce_controller_get_state(&state->mode_debounce),
+			.logic_state = (uint8_t)state->mode,
+			.running_mode = (uint8_t)debounce_controller_get_state(&state->mode_debounce),
 			.throttle_pwm = state->output_throttle_pwm,
 			.steering_pwm = state->output_steering_pwm
 		};

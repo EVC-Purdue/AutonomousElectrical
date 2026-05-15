@@ -81,7 +81,8 @@ void send_can_status(const can_status_msg_t* status, CAN_HandleTypeDef* hcan) {
 	tx_header.IDE = CAN_ID_STD;
 	tx_header.DLC = 8;
 
-	tx_data[0] = (status->mode & 0x0F) | ((uint8_t)status->rc_mode << 4);
+	// byte 0: lower 4 bits for logic mode, next 2 bits for running mode, upper 2 bits reserved
+	tx_data[0] = (status->logic_state & 0x0F) | ((status->running_mode & 0x03) << 4);
 	tx_data[1] = status->throttle_pwm & 0xFF;
 	tx_data[2] = (status->throttle_pwm >> 8) & 0xFF;
 	tx_data[3] = status->steering_pwm & 0xFF;

@@ -34,8 +34,8 @@ typedef struct {
 // - ID = `0x101` - **Status update** (TX)
 // 	- Byte 0: state machine mode + rc mode
 // 		- Bits0-3 = state machine mode (see logic.h::logic_mode_t)
-// 		- Bit4 = RC mode (0 = rc mode, 1 = autonomous mode)
-// 		- Bits5-7 = reserved
+// 		- Bit4-5 = Mode (0 = RC, 1 = autonomous, 2 = idle)
+// 		- Bits6-7 = reserved
 // 	- Byte 1-2: throttle PWM (uint16_t, little endian), the actual PWM value being sent to the ESC for throttle (1000-2000)
 // 	- Byte 3-4: steering PWM (uint16_t, little endian), the actual PWM value being sent to the servo for steering (1000-2000)
 // 	- Byte 5-7: reserved / future use
@@ -43,8 +43,8 @@ typedef struct {
 #define CAN_STATUS_IS_EXT_ID (false)
 #define CAN_STATUS_MIN_BYTES (5)
 typedef struct {
-	uint8_t mode; // logic_mode_t
-	bool rc_mode; // false = rc mode, true = autonomous mode
+	uint8_t logic_state;   // logic_mode_t
+	uint8_t running_mode;  // logic_running_submode_t
 	uint16_t throttle_pwm; // actual PWM value being sent to the ESC for throttle (1000-2000)
 	uint16_t steering_pwm; // actual PWM value being sent to the servo for steering (1000-2000)
 } can_status_msg_t;
