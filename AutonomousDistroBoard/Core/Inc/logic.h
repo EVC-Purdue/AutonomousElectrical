@@ -129,7 +129,8 @@ void logic_init(logic_state_t* state);
 
 void logic_switch_mode(logic_state_t* state, logic_mode_t new_mode, uint32_t now);
 
-// Only gives a valid result when in LOGIC_MODE_RUNNING, otherwise the result is not useful/valid
+// Convert the 3-position MODE switch PWM value to the corresponding logic_running_submode_t value
+// Returns IDLE if the value doesn't match any range
 logic_running_submode_t pwm_value_to_running_submode(uint16_t mode_pwm_value);
 
 // Called AFAP (as fast as possible) in the main loop
