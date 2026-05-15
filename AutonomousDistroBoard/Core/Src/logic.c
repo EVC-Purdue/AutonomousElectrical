@@ -300,7 +300,8 @@ void logic_run(
 	// Periodically send CAN throttle commands to the VESC
 	if (
 		util_has_elapsed(state->now, state->last_can_vesc_set_rpm_tx_time, CAN_VESC_SET_RPM_TX_PERIOD) &&
-		HAL_CAN_GetTxMailboxesFreeLevel(hcan) > 0
+		HAL_CAN_GetTxMailboxesFreeLevel(hcan) > 0 &&
+		state->vesc_last_status_timestamp != 0
 	) {
 		can_vesc_set_rpm_msg_t set_rpm_msg = {
 			.erpm = state->output_throttle_erpm
@@ -316,7 +317,8 @@ void logic_run(
 	// Periodically send CAN status messages
 	if (
 		util_has_elapsed(state->now, state->last_can_status_tx_time, CAN_STATUS_TX_PERIOD) &&
-		HAL_CAN_GetTxMailboxesFreeLevel(hcan) > 0
+		HAL_CAN_GetTxMailboxesFreeLevel(hcan) > 0 &&
+		state->vesc_last_status_timestamp != 0
 	) {
 		can_status_msg_t status = {
 			.logic_state = (uint8_t)state->mode,
