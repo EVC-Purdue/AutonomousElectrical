@@ -167,8 +167,13 @@ void logic_run(
 
 				state->output_throttle_pwm = map_u16(ibus_throttle_pwm, THROTTLE_STICK_IDLE, THROTTLE_STICK_MAX, THROTTLE_PWM_LOW, THROTTLE_PWM_HIGH);
 				state->output_steering_pwm = ibus_steering_pwm; // iBUS steering is already in the form of a PWM value, just pass it through directly
+			
+				// Clear the CAN control values
+				// Important because otherwise when we go into software mode we may begin using the stale CAN values + an up to date heartbeat value
+				state->can_current_throttle_pwm = THROTTLE_PWM_LOW;
+				state->can_current_steering_pwm = STEERING_PWM_CENTER;
+				state->last_control_timestamp = 0;
 			}
-
 
 			break;
 		} //--------------------------------------------------------------------------//
