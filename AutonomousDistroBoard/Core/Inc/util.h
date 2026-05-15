@@ -29,8 +29,8 @@ uint32_t option_u32_unwrap(option_u32_t opt); // only call if opt is known to be
 
 
 // Debounce controller -------------------------------------------------------//
-// Noise-tolerant debounce controller for signals, with separate debounce
-// times for rising and falling edges and an optional accumulating debounce feature
+// Noise-tolerant debounce controller for signals, with a single debounce
+ // time for transitions and an optional accumulating debounce feature
 // to help filter out noise that causes multiple rapid transitions
 typedef int16_t debounce_state_t;
 typedef struct {
