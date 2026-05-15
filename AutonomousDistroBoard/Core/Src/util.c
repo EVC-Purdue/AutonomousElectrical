@@ -120,31 +120,29 @@ uint32_t option_u32_unwrap(option_u32_t opt) {
 // debounce_controller_t -----------------------------------------------------//
 void debounce_controller_init(
 	debounce_controller_t* controller,
-	bool initial_state,
-	uint32_t rising_debounce_ms,
-	uint32_t falling_debounce_ms,
+	debounce_state_t initial_state,
+	uint32_t debounce_ms,
 	uint32_t accumulating_debounce_ms
 ) {
 	controller->stable_state = initial_state;
 	controller->transition_start_time = option_u32_none();
 	controller->interruption_start_time = option_u32_none();
-	controller->rising_debounce_ms = rising_debounce_ms;
-	controller->falling_debounce_ms = falling_debounce_ms;
+	controller->debounce_ms = debounce_ms;
 	controller->accumulating_debounce_ms = accumulating_debounce_ms;
 }
 
 void debounce_controller_reset(
 	debounce_controller_t* controller,
-	bool state
+	debounce_state_t state
 ) {
 	controller->stable_state = state;
 	controller->transition_start_time = option_u32_none();
 	controller->interruption_start_time = option_u32_none();
 }
 
-bool debounce_controller_update(
+debounce_state_t debounce_controller_update(
 	debounce_controller_t* controller,
-	bool raw_state,
+	debounce_state_t raw_state,
 	uint32_t now
 ) {
 	if (raw_state == controller->stable_state) {
@@ -166,11 +164,7 @@ bool debounce_controller_update(
 
 	controller->interruption_start_time = option_u32_none();
 
-	uint32_t debounce_ms = raw_state
-		? controller->rising_debounce_ms
-		: controller->falling_debounce_ms;
-
-	if (util_has_elapsed(now, option_u32_unwrap(controller->transition_start_time), debounce_ms)) {
+	if (util_has_elapsed(now, option_u32_unwrap(controller->transition_start_time), controller->debounce_ms)) {
 		controller->stable_state = raw_state;
 		controller->transition_start_time = option_u32_none();
 		controller->interruption_start_time = option_u32_none();
@@ -179,7 +173,7 @@ bool debounce_controller_update(
 	return controller->stable_state;
 }
 
-bool debounce_controller_get_state(const debounce_controller_t* controller) {
+debounce_state_t debounce_controller_get_state(const debounce_controller_t* controller) {
 	return controller->stable_state;
 }
 //----------------------------------------------------------------------------//
