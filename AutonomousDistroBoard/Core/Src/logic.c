@@ -207,7 +207,18 @@ void logic_run(
 					// have already switched to RC_DISCONNECTED mode in the earlier check
 					uint16_t ibus_throttle_pwm = state->ibus.channels[IBUS_CHANNEL_THROTTLE];
 					uint16_t ibus_steering_pwm = state->ibus.channels[IBUS_CHANNEL_STEERING];
-					state->output_throttle_erpm = map_i32((int32_t)ibus_throttle_pwm, THROTTLE_STICK_IDLE, THROTTLE_STICK_MAX, 0, RC_ERPM_MAX);
+
+					bool throttle_stick_idle = UTIL_ABS((int32_t)ibus_throttle_pwm - THROTTLE_STICK_IDLE) <= THROTTLE_STICK_DEADBAND;
+					if (throttle_stick_idle) {
+						state->output_throttle_erpm = 0;
+					} else if (ibus_throttle_pwm > THROTTLE_STICK_IDLE) {
+						// Forward throttle
+						state->output_throttle_erpm = map_i32((int32_t)ibus_throttle_pwm, THROTTLE_STICK_IDLE, THROTTLE_STICK_MAX, 0, RC_ERPM_MAX);
+					} else {
+						// Reverse throttle
+						state->output_throttle_erpm = map_i32((int32_t)ibus_throttle_pwm, THROTTLE_STICK_IDLE, THROTTLE_STICK_MIN, 0, REVERSE_ERPM_MIN);
+					}
+
 					state->output_steering_pwm = ibus_steering_pwm; // iBUS steering is already in the form of a PWM value, just pass it through directly
 					
 					logic_clear_can_control(state); 
