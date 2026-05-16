@@ -396,4 +396,10 @@ void logic_run(
 		bool led_on = (NOW() / led_period) % 2 == 0;
 		HAL_GPIO_WritePin(LED_OUT_GPIO_Port, LED_OUT_Pin, led_on ? GPIO_PIN_SET : GPIO_PIN_RESET);
 	}
+
+	// Set CAN err if there is one
+	uint32_t can_err = HAL_CAN_GetError(hcan);
+	if (can_err != 0) {
+		state->can_err = can_err;
+	}
 }

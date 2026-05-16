@@ -127,6 +127,8 @@ typedef struct {
 
 	uint32_t t0; // timestamp of the start of the last logic_run() iteration, used for calculation of delta time in IDLE deceleration and steering rate limiting
 	uint32_t t1; // timestamp of the current logic_run() iteration, used to set t0/delta time in the next iteration
+
+	uint32_t can_err; // debugging purposes, last CAN non-zero error code
 } logic_state_t;
 
 void logic_init(logic_state_t* state);
