@@ -89,7 +89,7 @@ int32_t min_i32(int32_t a, int32_t b) {
 	return (a < b) ? a : b;
 }
 
-int32_t util_abs_i32(int32_t x) {
+int32_t abs_i32(int32_t x) {
 	return (x < 0) ? -x : x;
 }
 //----------------------------------------------------------------------------//

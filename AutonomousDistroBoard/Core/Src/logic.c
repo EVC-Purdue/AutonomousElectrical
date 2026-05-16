@@ -49,11 +49,14 @@ void logic_init(logic_state_t* state) {
 	state->t0 = NOW();
 	state->t1 = NOW();
 
+	state->can_err = 0;
+
 	g_logic_state_ptr = state;
 }
 
 uint16_t logic_erpm_to_pwm(int32_t erpm) {
-	int32_t throttle_i32 = map_i32(erpm, 0, VESC_ERPM_MAX, THROTTLE_PWM_LOW, THROTTLE_PWM_HIGH);
+	// Full range of value ERPM values is REVERSE_ERPM_MIN to VESC_ERPM_MAX, that is mapped that to the full range of PWM values (1000-2000)
+	int32_t throttle_i32 = map_i32(erpm, REVERSE_ERPM_MIN, VESC_ERPM_MAX, THROTTLE_PWM_LOW, THROTTLE_PWM_HIGH);
 	// Safe to directly cast to uint16_t as the map() clamps and the output range is within uint16_t limits
 	return (uint16_t)throttle_i32;
 }
@@ -207,7 +210,18 @@ void logic_run(
 					// have already switched to RC_DISCONNECTED mode in the earlier check
 					uint16_t ibus_throttle_pwm = state->ibus.channels[IBUS_CHANNEL_THROTTLE];
 					uint16_t ibus_steering_pwm = state->ibus.channels[IBUS_CHANNEL_STEERING];
-					state->output_throttle_erpm = map_i32((int32_t)ibus_throttle_pwm, THROTTLE_STICK_IDLE, THROTTLE_STICK_MAX, 0, RC_ERPM_MAX);
+
+					bool throttle_stick_idle = abs_i32((int32_t)ibus_throttle_pwm - THROTTLE_STICK_IDLE) <= THROTTLE_STICK_DEADBAND;
+					if (throttle_stick_idle) {
+						state->output_throttle_erpm = 0;
+					} else if (ibus_throttle_pwm > THROTTLE_STICK_IDLE) {
+						// Forward throttle
+						state->output_throttle_erpm = map_i32((int32_t)ibus_throttle_pwm, THROTTLE_STICK_IDLE, THROTTLE_STICK_MAX, 0, RC_ERPM_MAX);
+					} else {
+						// Reverse throttle
+						state->output_throttle_erpm = map_i32((int32_t)ibus_throttle_pwm, THROTTLE_STICK_IDLE, THROTTLE_STICK_MIN, 0, REVERSE_ERPM_MIN);
+					}
+
 					state->output_steering_pwm = ibus_steering_pwm; // iBUS steering is already in the form of a PWM value, just pass it through directly
 					
 					logic_clear_can_control(state); 
@@ -316,7 +330,9 @@ void logic_run(
 	// Clamp the output values to their valid ranges just in case
 	logic_running_submode_t mode_debounced = debounce_controller_get_state(&state->mode_debounce);
 	bool non_rc_mode = mode_debounced != LOGIC_RUNNING_RC;
-	state->output_throttle_erpm = clamp_i32(state->output_throttle_erpm, 0, non_rc_mode ? AUTONOMOUS_ERPM_MAX : RC_ERPM_MAX);
+	int32_t erpm_max = non_rc_mode ? AUTONOMOUS_ERPM_MAX : RC_ERPM_MAX;
+	int32_t erpm_min = non_rc_mode ? 0 : REVERSE_ERPM_MIN; // No reverse allowed in non-RC modes
+	state->output_throttle_erpm = clamp_i32(state->output_throttle_erpm, erpm_min, erpm_max);
 	state->output_steering_pwm = clamp_u16(state->output_steering_pwm, STEERING_PWM_LOW, STEERING_PWM_HIGH);
 
 	// Set the throttle PWM as a function of the output ERPM
@@ -335,7 +351,7 @@ void logic_run(
 	}
 
 	// Steering deadband
-	bool within_deadband = util_abs_i32((int32_t)state->output_steering_pwm - STEERING_PWM_CENTER) <= STEERING_PWM_DEADBAND;
+	bool within_deadband = abs_i32((int32_t)state->output_steering_pwm - STEERING_PWM_CENTER) <= STEERING_PWM_DEADBAND;
 	if (within_deadband) {
 		state->output_steering_pwm = STEERING_PWM_CENTER;
 	}
@@ -384,5 +400,11 @@ void logic_run(
 	} else {
 		bool led_on = (NOW() / led_period) % 2 == 0;
 		HAL_GPIO_WritePin(LED_OUT_GPIO_Port, LED_OUT_Pin, led_on ? GPIO_PIN_SET : GPIO_PIN_RESET);
+	}
+
+	// Set CAN err if there is one
+	uint32_t can_err = HAL_CAN_GetError(hcan);
+	if (can_err != 0) {
+		state->can_err = can_err;
 	}
 }

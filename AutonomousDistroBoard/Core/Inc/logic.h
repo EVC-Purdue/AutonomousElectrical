@@ -21,8 +21,10 @@
 #define IBUS_CHANNEL_MODE     (4) // ~1000 = RC mode, ~1500 = autonomous mode, ~2000 = IDLE mode
 #define IBUS_CHANNEL_ESTOP    (5) // ~1000 = not pressed, ~2000 = estop
 
-#define THROTTLE_STICK_IDLE (1500) // throttle stick resting value
-#define THROTTLE_STICK_MAX  (2000) // maximum throttle stick value
+#define THROTTLE_STICK_MIN      (1000) // minimum throttle stick value (full reverse)
+#define THROTTLE_STICK_IDLE     (1500) // throttle stick resting value (should correspond to 0 ERPM)
+#define THROTTLE_STICK_MAX      (2000) // maximum throttle stick value (full forward)
+#define THROTTLE_STICK_DEADBAND (5)    // if the throttle stick is within this many of the idle value, just consider it idle
 
 #define SW_ESTOP_PWM_THRESHOLD         (1500) // if the ESTOP channel goes above this value, consider the remote estop to be triggered
 #define SW_ESTOP_DEBOUNCE              (200)  // ms, require the ESTOP channel to be above the threshold for at least this long before considering the remote estop to be triggered
@@ -43,9 +45,10 @@
 
 #define RC_CONNECTION_TIMEOUT (100) // ms, if we did not get a valid iBUS frame within this time, consider the RC connection to be lost
 
-#define VESC_ERPM_MAX       (14218)          // Maximum ERPM set in VESC tool (12 meters/second)
+#define VESC_ERPM_MAX       (14218)         // Maximum ERPM set in VESC tool (12 meters/second)
 #define AUTONOMOUS_ERPM_MAX (VESC_ERPM_MAX) // Maximum ERPM allowed in software/autonomous mode. Software allowed to command full range.
 #define RC_ERPM_MAX         (7000)          // Maximum ERPM allowed in RC mode (~6 meters/second)
+#define REVERSE_ERPM_MIN    (-2000)         // Minimum (most negative) ERPM allowed in reverse direction in RC mode. (Reverse not allowed in non-RC modes.)
 
 #define IDLE_ERPM_DECEL (4000)       // ERPM/s, max deceleration (rate of change of ERPM) when in IDLE
 #define IDLE_STEERING_PWM_VEL (1000) // PWM/s, max rate of change of steering when in IDLE
@@ -124,6 +127,8 @@ typedef struct {
 
 	uint32_t t0; // timestamp of the start of the last logic_run() iteration, used for calculation of delta time in IDLE deceleration and steering rate limiting
 	uint32_t t1; // timestamp of the current logic_run() iteration, used to set t0/delta time in the next iteration
+
+	uint32_t can_err; // debugging purposes, last CAN non-zero error code
 } logic_state_t;
 
 void logic_init(logic_state_t* state);
