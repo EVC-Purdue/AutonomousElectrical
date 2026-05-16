@@ -21,7 +21,7 @@
 #define IBUS_CHANNEL_MODE     (4) // ~1000 = RC mode, ~1500 = autonomous mode, ~2000 = IDLE mode
 #define IBUS_CHANNEL_ESTOP    (5) // ~1000 = not pressed, ~2000 = estop
 
-#define THROTTLE_STICK_MIN      (1000) // minium throttle stick value (full reverse)
+#define THROTTLE_STICK_MIN      (1000) // minimum throttle stick value (full reverse)
 #define THROTTLE_STICK_IDLE     (1500) // throttle stick resting value (should correspond to 0 ERPM)
 #define THROTTLE_STICK_MAX      (2000) // maximum throttle stick value (full forward)
 #define THROTTLE_STICK_DEADBAND (5)    // if the throttle stick is within this many of the idle value, just consider it idle
