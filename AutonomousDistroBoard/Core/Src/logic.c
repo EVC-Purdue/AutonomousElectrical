@@ -53,7 +53,8 @@ void logic_init(logic_state_t* state) {
 }
 
 uint16_t logic_erpm_to_pwm(int32_t erpm) {
-	int32_t throttle_i32 = map_i32(erpm, 0, VESC_ERPM_MAX, THROTTLE_PWM_LOW, THROTTLE_PWM_HIGH);
+	// Full range of value ERPM values is REVERSE_ERPM_MIN to VESC_ERPM_MAX, that is mapped that to the full range of PWM values (1000-2000)
+	int32_t throttle_i32 = map_i32(erpm, REVERSE_ERPM_MIN, VESC_ERPM_MAX, THROTTLE_PWM_LOW, THROTTLE_PWM_HIGH);
 	// Safe to directly cast to uint16_t as the map() clamps and the output range is within uint16_t limits
 	return (uint16_t)throttle_i32;
 }
