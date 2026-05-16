@@ -42,7 +42,7 @@ Note: `CAN_VESC_ID` is set to 7.
 	- Channel: 2 (index 1)
 	- At idle (center position): 1500 microseconds pulse width
 	- At full throttle forward: 2000 microseconds pulse width
-	- Pushing the throttle stick back still sends 1500
+	- At full throttle reverse: 1000 microseconds pulse width
 - Steering
 	- Channel: 4 (index 3)
 	- At center position: 1500 microseconds pulse width
