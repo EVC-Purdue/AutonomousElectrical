@@ -17,7 +17,7 @@
 
 // iBUS data structure
 typedef struct {
-	uint32_t last_frame_time; // HAL_GetTick() timestamp of when the last valid frame was received
+	uint32_t last_frame_time; // timestamp of when the last valid frame was received
 	uint8_t dma_buffer[IBUS_DMA_BUFFER_SIZE]; // DMA buffer for incoming UART data
 	uint8_t frame[IBUS_FRAME_SIZE]; // Buffer for assembling a single iBUS frame
 	uint8_t frame_index; // Current index in the frame buffer

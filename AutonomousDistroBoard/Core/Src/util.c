@@ -5,7 +5,9 @@
 
 //----------------------------------------------------------------------------//
 bool util_has_elapsed(uint32_t now, uint32_t start, uint32_t duration_ms) {
-	return (uint32_t)(now - start) >= duration_ms;
+	// Cast to int64_t to avoid issues of now < start
+	int64_t elapsed = (int64_t)now - (int64_t)start;
+	return elapsed >= (int64_t)duration_ms;
 }
 uint16_t clamp_u16(uint16_t value, uint16_t min, uint16_t max) {
 	if (value < min) {
@@ -85,6 +87,10 @@ int32_t max_i32(int32_t a, int32_t b) {
 
 int32_t min_i32(int32_t a, int32_t b) {
 	return (a < b) ? a : b;
+}
+
+int32_t util_abs_i32(int32_t x) {
+	return (x < 0) ? -x : x;
 }
 //----------------------------------------------------------------------------//
 
@@ -191,7 +197,7 @@ debounce_state_t debounce_controller_update(
 	}
 
 	// Candidate has remained active long enough
-	if (util_has_elapsed( now, option_u32_unwrap(controller->transition_start_time), controller->debounce_ms)) {
+	if (util_has_elapsed(now, option_u32_unwrap(controller->transition_start_time), controller->debounce_ms)) {
 		controller->stable_state = controller->candidate_state;
 		controller->transition_start_time = option_u32_none();
 		controller->interruption_start_time = option_u32_none();
