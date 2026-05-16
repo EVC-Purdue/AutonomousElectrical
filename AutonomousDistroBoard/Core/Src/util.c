@@ -192,7 +192,7 @@ debounce_state_t debounce_controller_update(
 	}
 
 	// Candidate has remained active long enough
-	if (util_has_elapsed( now, option_u32_unwrap(controller->transition_start_time), controller->debounce_ms)) {
+	if (util_has_elapsed(now, option_u32_unwrap(controller->transition_start_time), controller->debounce_ms)) {
 		controller->stable_state = controller->candidate_state;
 		controller->transition_start_time = option_u32_none();
 		controller->interruption_start_time = option_u32_none();

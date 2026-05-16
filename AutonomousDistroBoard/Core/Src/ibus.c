@@ -56,7 +56,7 @@ void ibus_parse_byte(ibus_t* ibus, uint8_t byte) {
                 for (int i = 0; i < IBUS_CHANNEL_COUNT; i++) {
 					ibus->channels[i] = ibus->frame[2 + i*2] | (ibus->frame[3 + i*2] << 8);
 				}
-                ibus->last_frame_time = HAL_GetTick();
+                ibus->last_frame_time = NOW();
             }
         }
     }

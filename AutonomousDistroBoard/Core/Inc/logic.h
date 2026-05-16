@@ -99,7 +99,7 @@ typedef enum {
 
 typedef struct {
 	logic_mode_t mode; // Use logic_switch_mode() for normal mode transitions so last_mode_set_time is updated; direct assignment is only for initialization/internal setup that also handles last_mode_set_time appropriately
-	uint32_t last_mode_set_time; // HAL_GetTick() timestamp of when we last set the current mode (set not switched)
+	uint32_t last_mode_set_time; // timestamp of when we last set the current mode (set not switched)
 
 	ibus_t ibus;
 	uint32_t last_can_status_tx_time; // time of the last sent CAN status message (to Jetson/Pi)
@@ -109,21 +109,21 @@ typedef struct {
 
 	volatile uint16_t can_current_throttle_erpm; // 0-MAX_ERPM, updated by CAN RX callback
 	volatile uint16_t can_current_steering_pwm; // 1000-2000, updated by CAN RX callback
-	volatile uint32_t last_control_timestamp; // HAL_GetTick() timestamp of last received control message
+	volatile uint32_t last_control_timestamp; // timestamp of last received control message
 
 	volatile uint8_t heartbeat_counter; // updated by CAN RX callback when we receive a heartbeat message from E_Comms
-	volatile uint32_t last_heartbeat_timestamp; // HAL_GetTick() timestamp of last received heartbeat message from E_Comms
+	volatile uint32_t last_heartbeat_timestamp; // timestamp of last received heartbeat message from E_Comms
 
 	volatile int32_t vesc_current_erpm; // updated by CAN RX callback when we receive a VESC status 1 message
-	volatile uint32_t vesc_last_status_timestamp; // HAL_GetTick() timestamp of last received VESC status 1 message
+	volatile uint32_t vesc_last_status_timestamp; // timestamp of last received VESC status 1 message
 
 	int32_t output_throttle_erpm; // the ERPM value sent to the motor controller in the current/last iteration
 	uint16_t output_throttle_pwm; // 1000-2000, the PWM value sent to the motor controller in the current/last iteration. Always set as a function of output_throttle_erpm.
 	uint16_t output_steering_pwm; // 1000-2000, PWM value sent to the steering servo in the current/last iteration
 	uint32_t last_can_vesc_set_rpm_tx_time; // time of the last sent CAN set (E)RPM message (to VESC)
 
-	uint32_t last_loop_time; // HAL_GetTick() timestamp of the start of the last logic_run() iteration, used for calculation of delta time in IDLE deceleration and steering rate limiting
-	uint32_t now; // HAL_GetTick() timestamp of the current logic_run() iteration, used for all timeouts and timing-related logic in logic_run() and to set last_loop_time
+	uint32_t t0; // timestamp of the start of the last logic_run() iteration, used for calculation of delta time in IDLE deceleration and steering rate limiting
+	uint32_t t1; // timestamp of the current logic_run() iteration, used to set t0/delta time in the next iteration
 } logic_state_t;
 
 void logic_init(logic_state_t* state);

@@ -5,6 +5,7 @@
 #include <stdbool.h>
 
 
+#define NOW() (HAL_GetTick()) // macro to get the current time in ms, for convenience
 #define UTIL_ABS(x) ((x) < 0 ? -(x) : (x))
 
 
