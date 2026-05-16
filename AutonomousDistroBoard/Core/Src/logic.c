@@ -208,7 +208,7 @@ void logic_run(
 					uint16_t ibus_throttle_pwm = state->ibus.channels[IBUS_CHANNEL_THROTTLE];
 					uint16_t ibus_steering_pwm = state->ibus.channels[IBUS_CHANNEL_STEERING];
 
-					bool throttle_stick_idle = UTIL_ABS((int32_t)ibus_throttle_pwm - THROTTLE_STICK_IDLE) <= THROTTLE_STICK_DEADBAND;
+					bool throttle_stick_idle = abs_i32((int32_t)ibus_throttle_pwm - THROTTLE_STICK_IDLE) <= THROTTLE_STICK_DEADBAND;
 					if (throttle_stick_idle) {
 						state->output_throttle_erpm = 0;
 					} else if (ibus_throttle_pwm > THROTTLE_STICK_IDLE) {
@@ -346,7 +346,7 @@ void logic_run(
 	}
 
 	// Steering deadband
-	bool within_deadband = util_abs_i32((int32_t)state->output_steering_pwm - STEERING_PWM_CENTER) <= STEERING_PWM_DEADBAND;
+	bool within_deadband = abs_i32((int32_t)state->output_steering_pwm - STEERING_PWM_CENTER) <= STEERING_PWM_DEADBAND;
 	if (within_deadband) {
 		state->output_steering_pwm = STEERING_PWM_CENTER;
 	}
