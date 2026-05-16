@@ -49,6 +49,8 @@ void logic_init(logic_state_t* state) {
 	state->t0 = NOW();
 	state->t1 = NOW();
 
+	state->can_err = 0;
+
 	g_logic_state_ptr = state;
 }
 
