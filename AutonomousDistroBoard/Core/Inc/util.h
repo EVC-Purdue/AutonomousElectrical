@@ -8,7 +8,6 @@
 
 
 #define NOW() (HAL_GetTick()) // macro to get the current time in ms, for convenience
-#define UTIL_ABS(x) ((x) < 0 ? -(x) : (x))
 
 
 bool util_has_elapsed(uint32_t now, uint32_t start, uint32_t duration_ms);
@@ -18,6 +17,7 @@ uint16_t map_u16(uint16_t value, uint16_t in_min, uint16_t in_max, uint16_t out_
 int32_t map_i32(int32_t value, int32_t in_min, int32_t in_max, int32_t out_min, int32_t out_max);
 int32_t max_i32(int32_t a, int32_t b);
 int32_t min_i32(int32_t a, int32_t b);
+int32_t util_abs_i32(int32_t x);
 
 
 // Option<uint32_t> type -----------------------------------------------------//

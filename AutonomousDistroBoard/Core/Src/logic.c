@@ -335,7 +335,7 @@ void logic_run(
 	}
 
 	// Steering deadband
-	bool within_deadband = UTIL_ABS((int16_t)state->output_steering_pwm - STEERING_PWM_CENTER) <= STEERING_PWM_DEADBAND;
+	bool within_deadband = util_abs_i32((int32_t)state->output_steering_pwm - STEERING_PWM_CENTER) <= STEERING_PWM_DEADBAND;
 	if (within_deadband) {
 		state->output_steering_pwm = STEERING_PWM_CENTER;
 	}
