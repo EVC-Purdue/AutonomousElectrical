@@ -5,6 +5,7 @@
 
 //----------------------------------------------------------------------------//
 bool util_has_elapsed(uint32_t now, uint32_t start, uint32_t duration_ms) {
+	// Note: underflows if now < start
 	return (uint32_t)(now - start) >= duration_ms;
 }
 uint16_t clamp_u16(uint16_t value, uint16_t min, uint16_t max) {

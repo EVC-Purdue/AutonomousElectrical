@@ -5,6 +5,9 @@
 #include <stdbool.h>
 
 
+#define UTIL_ABS(x) ((x) < 0 ? -(x) : (x))
+
+
 bool util_has_elapsed(uint32_t now, uint32_t start, uint32_t duration_ms);
 uint16_t clamp_u16(uint16_t value, uint16_t min, uint16_t max);
 int32_t clamp_i32(int32_t value, int32_t min, int32_t max);

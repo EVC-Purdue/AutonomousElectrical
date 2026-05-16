@@ -329,6 +329,12 @@ void logic_run(
 		state->last_can_vesc_set_rpm_tx_time = state->now;
 	}
 
+	// Steering deadband
+	bool within_deadband = UTIL_ABS((int16_t)state->output_steering_pwm - STEERING_PWM_CENTER) <= STEERING_PWM_DEADBAND;
+	if (within_deadband) {
+		state->output_steering_pwm = STEERING_PWM_CENTER;
+	}
+
 	// Set the PWM outputs
 	__HAL_TIM_SET_COMPARE(throttle_htim, TIM_CHANNEL_1, state->output_throttle_pwm);
 	__HAL_TIM_SET_COMPARE(steering_htim, TIM_CHANNEL_1, state->output_steering_pwm);
