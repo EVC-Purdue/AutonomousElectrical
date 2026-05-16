@@ -133,6 +133,9 @@ void logic_switch_mode(logic_state_t* state, logic_mode_t new_mode, uint32_t now
 // Returns IDLE if the value doesn't match any range
 logic_running_submode_t pwm_value_to_running_submode(uint16_t mode_pwm_value);
 
+// Clear the CAN control values in the logic state (set throttle ERPM to 0, steering PWM to center, and reset the control timestamp)
+void clear_can_control(logic_state_t* state);
+
 // Called AFAP (as fast as possible) in the main loop
 // It is also the only thing called in the main loop
 void logic_run(

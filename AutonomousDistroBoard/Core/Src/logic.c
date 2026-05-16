@@ -108,6 +108,18 @@ logic_running_submode_t pwm_value_to_running_submode(uint16_t mode_pwm_value) {
 	}
 }
 
+void clear_can_control(logic_state_t* state) {
+	// Important because otherwise when we go into software mode we may begin using the stale CAN values + an up to date heartbeat value
+
+	if (state == NULL) {
+		return;
+	}
+
+	state->can_current_throttle_erpm = 0;
+	state->can_current_steering_pwm = STEERING_PWM_CENTER;
+	state->last_control_timestamp = 0;
+}
+
 void logic_run(
 	logic_state_t* state,
 	UART_HandleTypeDef* sbus_huart,
@@ -191,12 +203,8 @@ void logic_run(
 					state->output_throttle_erpm = map_i32((int32_t)ibus_throttle_pwm, THROTTLE_STICK_IDLE, THROTTLE_STICK_MAX, 0, RC_ERPM_MAX);
 					state->output_steering_pwm = ibus_steering_pwm; // iBUS steering is already in the form of a PWM value, just pass it through directly
 					
-					// Clear the CAN control values
-					// Important because otherwise when we go into software mode we may begin using the stale CAN values + an up to date heartbeat value
-					state->can_current_throttle_erpm = 0;
-					state->can_current_steering_pwm = STEERING_PWM_CENTER;
-					state->last_control_timestamp = 0;
-					
+					clear_can_control(state); 
+
 					break;
 				}
 				case LOGIC_RUNNING_AUTONOMOUS: {
@@ -232,11 +240,7 @@ void logic_run(
 						state->output_steering_pwm = (uint16_t)max_i32((int32_t)state->output_steering_pwm - (int32_t)steering_pwm_change, STEERING_PWM_CENTER);
 					}
 
-					// Clear the CAN control values
-					// Important because otherwise when we go into software mode we may begin using the stale CAN values + an up to date heartbeat value
-					state->can_current_throttle_erpm = 0;
-					state->can_current_steering_pwm = STEERING_PWM_CENTER;
-					state->last_control_timestamp = 0;
+					clear_can_control(state);
 
 					break;
 				}
