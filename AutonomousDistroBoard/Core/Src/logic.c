@@ -327,7 +327,9 @@ void logic_run(
 	// Clamp the output values to their valid ranges just in case
 	logic_running_submode_t mode_debounced = debounce_controller_get_state(&state->mode_debounce);
 	bool non_rc_mode = mode_debounced != LOGIC_RUNNING_RC;
-	state->output_throttle_erpm = clamp_i32(state->output_throttle_erpm, 0, non_rc_mode ? AUTONOMOUS_ERPM_MAX : RC_ERPM_MAX);
+	int32_t erpm_max = non_rc_mode ? AUTONOMOUS_ERPM_MAX : RC_ERPM_MAX;
+	int32_t erpm_min = non_rc_mode ? 0 : REVERSE_ERPM_MIN; // No reverse allowed in non-RC modes
+	state->output_throttle_erpm = clamp_i32(state->output_throttle_erpm, erpm_min, erpm_max);
 	state->output_steering_pwm = clamp_u16(state->output_steering_pwm, STEERING_PWM_LOW, STEERING_PWM_HIGH);
 
 	// Set the throttle PWM as a function of the output ERPM
