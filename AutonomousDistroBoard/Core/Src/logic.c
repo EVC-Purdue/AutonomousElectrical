@@ -115,9 +115,14 @@ void clear_can_control(logic_state_t* state) {
 		return;
 	}
 
+	uint32_t primask = __get_PRIMASK();
+ 	__disable_irq();
 	state->can_current_throttle_erpm = 0;
 	state->can_current_steering_pwm = STEERING_PWM_CENTER;
 	state->last_control_timestamp = 0;
+	if (primask == 0U) {
+		__enable_irq();
+ 	}
 }
 
 void logic_run(
