@@ -336,7 +336,13 @@ void logic_run(
 	state->output_steering_pwm = clamp_u16(state->output_steering_pwm, STEERING_PWM_LOW, STEERING_PWM_HIGH);
 
 	// Set the throttle PWM as a function of the output ERPM
-	state->output_throttle_pwm = logic_erpm_to_pwm(state->output_throttle_erpm);
+	// state->output_throttle_pwm = logic_erpm_to_pwm(state->output_throttle_erpm);
+	bool estopped = state->mode == LOGIC_MODE_ESTOPPED;
+	if (estopped) {
+		state->output_throttle_pwm = THROTTLE_PWM_HIGH;
+	} else {
+		state->output_throttle_pwm = THROTTLE_PWM_LOW;
+	}
 
 	// Periodically send CAN throttle commands to the VESC
 	if (
