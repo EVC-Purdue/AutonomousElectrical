@@ -34,7 +34,7 @@
 
 #define SW_MODE_RC_PWM_VALUE             (1000) // the value to map the MODE channel to when in RC mode
 #define SW_MODE_AUTONOMOUS_PWM_VALUE     (1500) // the value to map the MODE channel to when in autonomous mode
-#define SW_MODE_IDLE_PWM_VALUE           (2000) // the value to map the MODE channel to when in IDLE mode
+#define SW_MODE_US_PWM_VALUE             (2000) // the value to map the MODE channel to when in urgent stop (US) mode
 #define SW_MODE_PWM_TOLERANCE            (100)  // the range above and below the target MODE channel values to still consider it a valid reading for that mode
 #define SW_MODE_DEBOUNCE_MS              (200)  // ms, require the MODE channel to be consistently in a valid range for at least this long before switching modes
 #define SW_MODE_ACCUMULATING_DEBOUNCE_MS (30)   // ms, when the MODE channel is debouncing/accumulating, require it to be out of the valid range for the target mode for at least this long before resetting the debounce timer
@@ -50,22 +50,20 @@
 #define RC_ERPM_MAX         (7000)          // Maximum ERPM allowed in RC mode (~6 meters/second)
 #define REVERSE_ERPM_MIN    (-2000)         // Minimum (most negative) ERPM allowed in reverse direction in RC mode. (Reverse not allowed in non-RC modes.)
 
-#define IDLE_ERPM_DECEL (4000)       // ERPM/s, max deceleration (rate of change of ERPM) when in IDLE
-#define IDLE_STEERING_PWM_VEL (1000) // PWM/s, max rate of change of steering when in IDLE
-static_assert(IDLE_ERPM_DECEL >= 1000, "dt resolution is 1ms so (int32_t)(dt * IDLE_ERPM_DECEL) needs to be at least 1 to ensure that we can actually decrease the ERPM");
-static_assert(IDLE_STEERING_PWM_VEL >= 1000, "dt resolution is 1ms so (int32_t)(dt * IDLE_STEERING_PWM_VEL) needs to be at least 1 to ensure that we can actually change the steering PWM");
+#define URGENT_STOP_ERPM_THRESHOLD (100)    // The threshold for triggering E-Stop in urgent stop mode. (Urgent mode: request 0 speed and then E-stop when achieved. This sets the RPM that is considered 0 speed achieved.)
+#define CAN_VESC_STATUS_1_TIMEOUT  (200)    // ms, if we have not received a VESC status 1 message within this time, consider the VESC connection to be lost when trying to read the current ERPM for urgent stop mode
 
 // Really these are half periods b/c it is the rate at which the LED toggles
-#define LED_STARTING_PERIOD           (100)  // ms
-#define LED_PRECHARGING_PERIOD        (400)  // ms
-#define LED_CONTACTOR_CLOSING_PERIOD  (50)   // ms
-#define LED_RUNNING_RC_PERIOD         (1000) // ms
-#define LED_RUNNING_AUTONOMOUS_PERIOD (250)  // ms
-#define LED_RUNNING_IDLE_PERIOD       (125)  // ms
-#define LED_ESTOPPED_PERIOD           (0)    // solid on
-#define LED_RC_DISCONNECTED_PERIOD    (0)    // solid on
-#define LED_CAN_DISCONNECTED_PERIOD   (0)    // solid on
-#define LED_RECOVERING_PERIOD         (2000) // ms
+#define LED_STARTING_PERIOD            (100)  // ms
+#define LED_PRECHARGING_PERIOD         (400)  // ms
+#define LED_CONTACTOR_CLOSING_PERIOD   (50)   // ms
+#define LED_RUNNING_RC_PERIOD          (1000) // ms
+#define LED_RUNNING_AUTONOMOUS_PERIOD  (250)  // ms
+#define LED_RUNNING_URGENT_STOP_PERIOD (50)  // ms
+#define LED_ESTOPPED_PERIOD            (0)    // solid on
+#define LED_RC_DISCONNECTED_PERIOD     (0)    // solid on
+#define LED_CAN_DISCONNECTED_PERIOD    (0)    // solid on
+#define LED_RECOVERING_PERIOD          (2000) // ms
 
 #define THROTTLE_PWM_LOW  (1000)
 #define THROTTLE_PWM_HIGH (2000)
@@ -94,9 +92,9 @@ typedef enum {
 } logic_mode_t;
 
 typedef enum {
-	LOGIC_RUNNING_RC         = 0,
-	LOGIC_RUNNING_AUTONOMOUS = 1,
-	LOGIC_RUNNING_IDLE       = 2,
+	LOGIC_RUNNING_RC          = 0,
+	LOGIC_RUNNING_AUTONOMOUS  = 1,
+	LOGIC_RUNNING_URGENT_STOP = 2,
 } logic_running_submode_t;
 
 
@@ -125,9 +123,6 @@ typedef struct {
 	uint16_t output_steering_pwm; // 1000-2000, PWM value sent to the steering servo in the current/last iteration
 	uint32_t last_can_vesc_set_rpm_tx_time; // time of the last sent CAN set (E)RPM message (to VESC)
 
-	uint32_t t0; // timestamp of the start of the last logic_run() iteration, used for calculation of delta time in IDLE deceleration and steering rate limiting
-	uint32_t t1; // timestamp of the current logic_run() iteration, used to set t0/delta time in the next iteration
-
 	uint32_t can_err; // debugging purposes, last CAN non-zero error code
 } logic_state_t;
 
@@ -136,7 +131,7 @@ void logic_init(logic_state_t* state);
 void logic_switch_mode(logic_state_t* state, logic_mode_t new_mode, uint32_t now);
 
 // Convert the 3-position MODE switch PWM value to the corresponding logic_running_submode_t value
-// Returns IDLE if the value doesn't match any range
+// Returns Urgent Stop if the value doesn't match any range
 logic_running_submode_t pwm_value_to_running_submode(uint16_t mode_pwm_value);
 
 // Clear the CAN control values in the logic state (set throttle ERPM to 0, steering PWM to center, and reset the control timestamp)

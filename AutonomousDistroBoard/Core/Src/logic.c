@@ -46,9 +46,6 @@ void logic_init(logic_state_t* state) {
 	state->output_steering_pwm = STEERING_PWM_CENTER;
 	state->last_can_vesc_set_rpm_tx_time = 0;
 
-	state->t0 = NOW();
-	state->t1 = NOW();
-
 	state->can_err = 0;
 
 	g_logic_state_ptr = state;
@@ -99,15 +96,15 @@ void logic_switch_mode(logic_state_t* state, logic_mode_t new_mode, uint32_t now
 }
 
 logic_running_submode_t pwm_value_to_running_submode(uint16_t mode_pwm_value) {
-	if (mode_pwm_value >= SW_MODE_IDLE_PWM_VALUE - SW_MODE_PWM_TOLERANCE && mode_pwm_value <= SW_MODE_IDLE_PWM_VALUE + SW_MODE_PWM_TOLERANCE) {
-		return LOGIC_RUNNING_IDLE;
-	} else if (mode_pwm_value >= SW_MODE_AUTONOMOUS_PWM_VALUE - SW_MODE_PWM_TOLERANCE && mode_pwm_value <= SW_MODE_AUTONOMOUS_PWM_VALUE + SW_MODE_PWM_TOLERANCE) {
+	if (abs_i32(mode_pwm_value - SW_MODE_US_PWM_VALUE) <= SW_MODE_PWM_TOLERANCE) {
+		return LOGIC_RUNNING_URGENT_STOP;
+	} else if (abs_i32(mode_pwm_value - SW_MODE_AUTONOMOUS_PWM_VALUE) <= SW_MODE_PWM_TOLERANCE) {
 		return LOGIC_RUNNING_AUTONOMOUS;
-	} else if (mode_pwm_value >= SW_MODE_RC_PWM_VALUE - SW_MODE_PWM_TOLERANCE && mode_pwm_value <= SW_MODE_RC_PWM_VALUE + SW_MODE_PWM_TOLERANCE) {
+	} else if (abs_i32(mode_pwm_value - SW_MODE_RC_PWM_VALUE) <= SW_MODE_PWM_TOLERANCE) {
 		return LOGIC_RUNNING_RC;
 	} else {
-		// If the value doesn't match any known submode, default to IDLE (safety choice, slowly stop)
-		return LOGIC_RUNNING_IDLE;
+		// If the value doesn't match any known submode, default to Urgent Stop (safety choice)
+		return LOGIC_RUNNING_URGENT_STOP;
 	}
 }
 
@@ -139,9 +136,6 @@ void logic_run(
 
 	// Process iBUS data
 	ibus_process(&state->ibus, sbus_huart);
-
-	state->t0 = state->t1;
-	state->t1 = NOW();
 
 	// All states: Check for RC connection timeout
 	if (!ibus_is_connected(&state->ibus, NOW(), RC_CONNECTION_TIMEOUT)) {
@@ -244,26 +238,23 @@ void logic_run(
 					}
 					break;
 				}
-				case LOGIC_RUNNING_IDLE: {
-					// Idle mode: ignore throttle and steering inputs
-					// Rate-limited resetting of throttle and steering (throttle to 0, steering to center)
-					float dt = (state->t1 - state->t0) / 1000.0f;
-
-					// Decrease ERPM at a fixed deceleration rate but not below 0
-					int32_t throttle_erpm_change = (int32_t)(IDLE_ERPM_DECEL * dt);
-					state->output_throttle_erpm = (int32_t)max_i32(state->output_throttle_erpm - throttle_erpm_change, 0);
-
-					// Steer towards center at a fixed rate
-					float steering_pwm_change = IDLE_STEERING_PWM_VEL * dt;
-					if (state->output_steering_pwm < STEERING_PWM_CENTER) {
-						state->output_steering_pwm = (uint16_t)min_i32((int32_t)state->output_steering_pwm + (int32_t)steering_pwm_change, STEERING_PWM_CENTER);
-					} else if (state->output_steering_pwm > STEERING_PWM_CENTER) {
-						state->output_steering_pwm = (uint16_t)max_i32((int32_t)state->output_steering_pwm - (int32_t)steering_pwm_change, STEERING_PWM_CENTER);
+				case LOGIC_RUNNING_URGENT_STOP: {
+					// Urgent Stop mode: request zero speed and when achieved, e-stop
+					
+					// Two cases that lead to e-stop:
+					// - VESC timeout, assume we have lost connection so e-stop is the best move
+					// - We have achieved the requested 0 speed (within a threshold)
+					bool vesc_status_timeout = util_has_elapsed(NOW(), state->vesc_last_status_timestamp, CAN_VESC_STATUS_1_TIMEOUT);
+					bool achieved_zero_speed = abs_i32(state->vesc_current_erpm) <= URGENT_STOP_ERPM_THRESHOLD;
+					if (vesc_status_timeout || achieved_zero_speed) {
+						logic_switch_mode(state, LOGIC_MODE_ESTOPPED, NOW());
+						state->output_throttle_erpm = 0;
+						state->output_steering_pwm = STEERING_PWM_CENTER;
+					} else {
+						// Not yet achieved zero speed, keep commanding 0 speed while we wait
+						state->output_throttle_erpm = 0;
+						state->output_steering_pwm = STEERING_PWM_CENTER;
 					}
-
-					logic_clear_can_control(state);
-
-					break;
 				}
 			}
 			break;
@@ -275,8 +266,14 @@ void logic_run(
 			state->output_throttle_erpm = 0;
 			state->output_steering_pwm = STEERING_PWM_CENTER;
 
+			// Leave only if the e-stop switch is not down and we are not in urgent stop
 			debounce_state_t estop_debounced = debounce_controller_get_state(&state->estop_debounce);
-			if (estop_debounced == SW_ESTOP_STATE_LOW) {
+			bool estop_switch_released = estop_debounced == SW_ESTOP_STATE_LOW;
+			
+			logic_running_submode_t mode_debounced = (logic_running_submode_t)debounce_controller_get_state(&state->mode_debounce);
+			bool not_in_urgent_stop = mode_debounced != LOGIC_RUNNING_URGENT_STOP;
+
+			if (estop_switch_released && not_in_urgent_stop) {
 				logic_switch_mode(state, LOGIC_MODE_RECOVERING, NOW());
 			}
 			break;
@@ -383,9 +380,9 @@ void logic_run(
 		case LOGIC_MODE_RUNNING: {
 			logic_running_submode_t running_submode = (logic_running_submode_t)debounce_controller_get_state(&state->mode_debounce);
 			switch (running_submode) {
-				case LOGIC_RUNNING_RC:         led_period = LED_RUNNING_RC_PERIOD;         break;
-				case LOGIC_RUNNING_AUTONOMOUS: led_period = LED_RUNNING_AUTONOMOUS_PERIOD; break;
-				case LOGIC_RUNNING_IDLE:       led_period = LED_RUNNING_IDLE_PERIOD;       break;
+				case LOGIC_RUNNING_RC:          led_period = LED_RUNNING_RC_PERIOD;          break;
+				case LOGIC_RUNNING_AUTONOMOUS:  led_period = LED_RUNNING_AUTONOMOUS_PERIOD;  break;
+				case LOGIC_RUNNING_URGENT_STOP: led_period = LED_RUNNING_URGENT_STOP_PERIOD; break;
 			}
 			break;
 		}

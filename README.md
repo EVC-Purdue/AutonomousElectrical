@@ -16,7 +16,7 @@ Autonomous Project electrical stack code
 - ID = `0x101` - **Status update** (TX)
 	- Byte 0: state machine mode + rc mode
 		- Bits0-3 = state machine mode (see logic.h::logic_mode_t)
-		- Bit4-5 = Mode (0 = RC, 1 = autonomous, 2 = idle)
+		- Bit4-5 = Mode (0 = RC, 1 = autonomous, 2 = urgent stop)
 		- Bits6-7 = reserved
 	- Byte 1-2: throttle PWM (uint16_t, little endian), the actual PWM value being sent to the ESC for throttle (1000-2000)
 	- Byte 3-4: steering PWM (uint16_t, little endian), the actual PWM value being sent to the servo for steering (1000-2000)
@@ -55,7 +55,8 @@ Note: `CAN_VESC_ID` is set to 7.
 		- SwC (3 position switch)
 	- In RC mode: 1000 microseconds pulse width (up position)
 	- In autonomous mode: 1500 microseconds pulse width (middle position)
-	- In IDLE mode: 2000 microseconds pulse width (down position)
+	- In Urgent Stop mode: 2000 microseconds pulse width (down position)
+		- Urgent Stop first requests 0 speed and then E-Stops once achieved
 - E-Stop switch
 	- Channel: 6 (index 5)
 		- SwB
