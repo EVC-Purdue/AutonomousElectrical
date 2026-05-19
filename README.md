@@ -40,21 +40,25 @@ Note: `CAN_VESC_ID` is set to 7.
 
 - Throttle
 	- Channel: 2 (index 1)
+		- Right stick: up-down
 	- At idle (center position): 1500 microseconds pulse width
 	- At full throttle forward: 2000 microseconds pulse width
 	- At full throttle reverse: 1000 microseconds pulse width
 - Steering
 	- Channel: 4 (index 3)
+		- Left stick: left-right
 	- At center position: 1500 microseconds pulse width
 	- At full right: 2000 microseconds pulse width
 	- At full left: 1000 microseconds pulse width
-- Mode switch (3 position switch)
+- Mode switch
 	- Channel: 5 (index 4)
-	- In RC mode: 1000 microseconds pulse width (not activated posistion)
+		- SwC (3 position switch)
+	- In RC mode: 1000 microseconds pulse width (up position)
 	- In autonomous mode: 1500 microseconds pulse width (middle position)
-	- In IDLE mode: 2000 microseconds pulse width (activated position)
+	- In IDLE mode: 2000 microseconds pulse width (down position)
 - E-Stop switch
 	- Channel: 6 (index 5)
+		- SwB
 	- Not pressed: 1000 microseconds pulse width (not activated position)
 	- Pressed: 2000 microseconds pulse width (activated position)
 
