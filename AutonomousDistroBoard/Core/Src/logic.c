@@ -96,7 +96,7 @@ void logic_switch_mode(logic_state_t* state, logic_mode_t new_mode, uint32_t now
 }
 
 logic_running_submode_t pwm_value_to_running_submode(uint16_t mode_pwm_value) {
-	if (abs_i32(mode_pwm_value - SW_MODE_US_PWM_VALUE) <= SW_MODE_PWM_TOLERANCE) {
+	if (abs_i32(mode_pwm_value - SW_MODE_URGENT_STOP_PWM_VALUE) <= SW_MODE_PWM_TOLERANCE) {
 		return LOGIC_RUNNING_URGENT_STOP;
 	} else if (abs_i32(mode_pwm_value - SW_MODE_AUTONOMOUS_PWM_VALUE) <= SW_MODE_PWM_TOLERANCE) {
 		return LOGIC_RUNNING_AUTONOMOUS;

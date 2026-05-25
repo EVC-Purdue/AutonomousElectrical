@@ -34,7 +34,7 @@
 
 #define SW_MODE_RC_PWM_VALUE             (1000) // the value to map the MODE channel to when in RC mode
 #define SW_MODE_AUTONOMOUS_PWM_VALUE     (1500) // the value to map the MODE channel to when in autonomous mode
-#define SW_MODE_US_PWM_VALUE             (2000) // the value to map the MODE channel to when in urgent stop (US) mode
+#define SW_MODE_URGENT_STOP_PWM_VALUE    (2000) // the value to map the MODE channel to when in urgent stop (US) mode
 #define SW_MODE_PWM_TOLERANCE            (100)  // the range above and below the target MODE channel values to still consider it a valid reading for that mode
 #define SW_MODE_DEBOUNCE_MS              (200)  // ms, require the MODE channel to be consistently in a valid range for at least this long before switching modes
 #define SW_MODE_ACCUMULATING_DEBOUNCE_MS (30)   // ms, when the MODE channel is debouncing/accumulating, require it to be out of the valid range for the target mode for at least this long before resetting the debounce timer
