@@ -255,6 +255,8 @@ void logic_run(
 						state->output_throttle_erpm = 0;
 						state->output_steering_pwm = STEERING_PWM_CENTER;
 					}
+
+					logic_clear_can_control(state);
 				}
 			}
 			break;
