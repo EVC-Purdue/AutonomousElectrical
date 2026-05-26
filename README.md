@@ -16,7 +16,7 @@ Autonomous Project electrical stack code
 - ID = `0x101` - **Status update** (TX)
 	- Byte 0: state machine mode + rc mode
 		- Bits0-3 = state machine mode (see logic.h::logic_mode_t)
-		- Bit4-5 = Mode (0 = RC, 1 = autonomous, 2 = idle)
+		- Bit4-5 = Mode (0 = RC, 1 = autonomous, 2 = urgent stop)
 		- Bits6-7 = reserved
 	- Byte 1-2: throttle PWM (uint16_t, little endian), the actual PWM value being sent to the ESC for throttle (1000-2000)
 	- Byte 3-4: steering PWM (uint16_t, little endian), the actual PWM value being sent to the servo for steering (1000-2000)
@@ -40,21 +40,26 @@ Note: `CAN_VESC_ID` is set to 7.
 
 - Throttle
 	- Channel: 2 (index 1)
+		- Right stick: up-down
 	- At idle (center position): 1500 microseconds pulse width
 	- At full throttle forward: 2000 microseconds pulse width
 	- At full throttle reverse: 1000 microseconds pulse width
 - Steering
 	- Channel: 4 (index 3)
+		- Left stick: left-right
 	- At center position: 1500 microseconds pulse width
 	- At full right: 2000 microseconds pulse width
 	- At full left: 1000 microseconds pulse width
-- Mode switch (3 position switch)
+- Mode switch
 	- Channel: 5 (index 4)
-	- In RC mode: 1000 microseconds pulse width (not activated posistion)
+		- SwC (3 position switch)
+	- In RC mode: 1000 microseconds pulse width (up position)
 	- In autonomous mode: 1500 microseconds pulse width (middle position)
-	- In IDLE mode: 2000 microseconds pulse width (activated position)
+	- In Urgent Stop mode: 2000 microseconds pulse width (down position)
+		- Urgent Stop first requests 0 speed and then E-Stops once achieved
 - E-Stop switch
 	- Channel: 6 (index 5)
+		- SwB
 	- Not pressed: 1000 microseconds pulse width (not activated position)
 	- Pressed: 2000 microseconds pulse width (activated position)
 
