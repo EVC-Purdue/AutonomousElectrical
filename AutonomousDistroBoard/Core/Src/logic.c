@@ -9,7 +9,7 @@
 
 
 static logic_state_t* g_logic_state_ptr = NULL;
-
+static int counter = 0; // for debugging, incremented every time contactor closed mode is entered, to avoid getting stuck in that mode
 
 void logic_init(logic_state_t* state) {
 	state->mode = LOGIC_MODE_STARTING;
@@ -189,13 +189,18 @@ void logic_run(
 			if (util_has_elapsed(NOW(), state->last_mode_set_time, CONTACTOR_CLOSED_DELAY)) {
 				logic_switch_mode(state, LOGIC_MODE_RUNNING, NOW());
 			}
+
 			break;
 		}
 		case LOGIC_MODE_RUNNING: { //-------------------------------------------------//
 			// Precharge off, contactor on
 			HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_RESET);
 			HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_SET);
-
+			if (READ_GPIO_PIN(ESTOP_CLOSED_GPIO_Port, ESTOP_CLOSED_Pin) == GPIO_PIN_SET) {
+				// If the estop is closed, it means the contactor is not closed when it should be
+				logic_switch_mode(state, LOGIC_MODE_CONTACTOR_CLOSED, NOW());
+				break;
+			}
 			logic_running_submode_t running_submode = (logic_running_submode_t)debounce_controller_get_state(&state->mode_debounce);
 			switch (running_submode) {
 				case LOGIC_RUNNING_RC: {
@@ -261,6 +266,22 @@ void logic_run(
 			}
 			break;
 		} //--------------------------------------------------------------------------//
+		case LOGIC_MODE_CONTACTOR_CLOSED: {
+			// Precharge off, contactor off
+			HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_RESET);
+			// This mode is only used for when contactor is opened when it should be closed and should not be entered during normal operation
+			// switch to Recovering mode after 5 second delay
+			// increment counter to avoid getting stuck in this mode if the contactor is not closed
+			counter++;
+			if (counter > 5){
+				counter = 0;
+				logic_switch_mode(state, LOGIC_MODE_RECOVERING, util_has_elapsed(NOW(), state->last_mode_set_time, 30000)); // 30 second delay
+			}
+				
+			logic_switch_mode(state, LOGIC_MODE_RECOVERING, util_has_elapsed(NOW(), state->last_mode_set_time, CONTACTOR_CLOSED_DELAY));
+			break;
+		}
 		case LOGIC_MODE_ESTOPPED: {
 			// STOP: precharge off, contactor off, throttle low, steering straight
 			HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_RESET);
