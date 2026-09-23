@@ -196,7 +196,7 @@ void logic_run(
 			// Precharge off, contactor on
 			HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_RESET);
 			HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_SET);
-			if (READ_GPIO_PIN(ESTOP_CLOSED_GPIO_Port, ESTOP_CLOSED_Pin) == GPIO_PIN_SET) {
+			if (IS_GPIO_PIN(ESTOP_CLOSED_GPIO_Port, ESTOP_CLOSED_Pin) == GPIO_PIN_SET) {
 				// If the estop is closed, it means the contactor is not closed when it should be
 				logic_switch_mode(state, LOGIC_MODE_CONTACTOR_CLOSED, NOW());
 				break;
@@ -400,6 +400,7 @@ void logic_run(
 		case LOGIC_MODE_STARTING:          led_period = LED_STARTING_PERIOD;          break;
 		case LOGIC_MODE_PRECHARGING:       led_period = LED_PRECHARGING_PERIOD;       break;
 		case LOGIC_MODE_CONTACTOR_CLOSING: led_period = LED_CONTACTOR_CLOSING_PERIOD; break;
+		case LOGIC_MODE_CONTACTOR_CLOSED:    led_period = LED_CONTACTOR_CLOSED_PERIOD;    break;
 		case LOGIC_MODE_RUNNING: {
 			logic_running_submode_t running_submode = (logic_running_submode_t)debounce_controller_get_state(&state->mode_debounce);
 			switch (running_submode) {

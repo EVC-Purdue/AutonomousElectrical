@@ -57,6 +57,7 @@
 #define LED_STARTING_PERIOD            (100)  // ms
 #define LED_PRECHARGING_PERIOD         (400)  // ms
 #define LED_CONTACTOR_CLOSING_PERIOD   (50)   // ms
+#define LED_CONTACTOR_CLOSED_PERIOD    (0)  // solid on
 #define LED_RUNNING_RC_PERIOD          (1000) // ms
 #define LED_RUNNING_AUTONOMOUS_PERIOD  (250)  // ms
 #define LED_RUNNING_URGENT_STOP_PERIOD (50)  // ms
