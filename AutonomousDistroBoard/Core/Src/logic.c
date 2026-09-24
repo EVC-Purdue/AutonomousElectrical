@@ -13,7 +13,7 @@ static logic_state_t* g_logic_state_ptr = NULL;
 void logic_init(logic_state_t* state) {
 	state->mode = LOGIC_MODE_STARTING;
 	state->last_mode_set_time = NOW();
-	counter = 0;
+	state->counter = 0;
 	debounce_controller_init(
 		&state->estop_debounce,
 		SW_ESTOP_STATE_LOW,
