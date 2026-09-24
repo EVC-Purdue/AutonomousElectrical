@@ -191,7 +191,7 @@ void logic_run(
 			break;
 		}
 		case LOGIC_MODE_RUNNING: { //-------------------------------------------------//
-			if (HAL_GPIO_READPin(ESTOP_CLOSED_Pin) == GPIO_PIN_SET) {
+			if (HAL_GPIO_ReadPin(ESTOP_CLOSED_Pin) == GPIO_PIN_SET) {
 				// If the estop is closed, it means the contactor is not closed when it should be
 				logic_switch_mode(state, LOGIC_MODE_NOT_CONTACTOR_CLOSED, NOW());
 				break;
@@ -271,9 +271,9 @@ void logic_run(
 			// This mode is only used for when contactor is opened when it should be closed and should not be entered during normal operation
 			// switch to Recovering mode after 5 second delay
 			// increment counter to avoid getting stuck in this mode if the contactor is not closed
-			counter++;
-			if (counter > 5){
-				counter = 0;
+			state->counter++;
+			if (state->counter > 5){
+				state->counter = 0;
 				logic_switch_mode(state, LOGIC_MODE_RECOVERING, util_has_elapsed(NOW(), state->last_mode_set_time, CONTACTOR_OPEN_LOOPING_DELAY)); // 30 second delay
 			}
 				
@@ -397,7 +397,7 @@ void logic_run(
 	switch (state->mode) {
 		case LOGIC_MODE_STARTING:          led_period = LED_STARTING_PERIOD;          break;
 		case LOGIC_MODE_PRECHARGING:       led_period = LED_PRECHARGING_PERIOD;       break;
-		case LOGIC_MODE_CONTACTOR_CLOSING: led_period = LED_NOT_CONTACTOR_CLOSING_PERIOD; break;
+		case LOGIC_MODE_CONTACTOR_CLOSING: led_period = LED_NOT_CONTACTOR_CLOSED_PERIOD; break;
 		case LOGIC_MODE_NOT_CONTACTOR_CLOSED:    led_period = LED_NOT_CONTACTOR_CLOSED_PERIOD;    break;
 		case LOGIC_MODE_RUNNING: {
 			logic_running_submode_t running_submode = (logic_running_submode_t)debounce_controller_get_state(&state->mode_debounce);
