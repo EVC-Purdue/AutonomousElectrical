@@ -9,12 +9,11 @@
 
 
 static logic_state_t* g_logic_state_ptr = NULL;
-static int counter = 0; // for debugging, incremented every time contactor closed mode is entered, to avoid getting stuck in that mode
 
 void logic_init(logic_state_t* state) {
 	state->mode = LOGIC_MODE_STARTING;
 	state->last_mode_set_time = NOW();
-	
+	counter = 0;
 	debounce_controller_init(
 		&state->estop_debounce,
 		SW_ESTOP_STATE_LOW,
@@ -189,18 +188,17 @@ void logic_run(
 			if (util_has_elapsed(NOW(), state->last_mode_set_time, CONTACTOR_CLOSED_DELAY)) {
 				logic_switch_mode(state, LOGIC_MODE_RUNNING, NOW());
 			}
-
 			break;
 		}
 		case LOGIC_MODE_RUNNING: { //-------------------------------------------------//
-			// Precharge off, contactor on
-			HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_RESET);
-			HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_SET);
-			if (IS_GPIO_PIN(ESTOP_CLOSED_Pin) == GPIO_PIN_SET) {
+			if (HAL_GPIO_READPIN(ESTOP_CLOSED_Pin) == GPIO_PIN_SET) {
 				// If the estop is closed, it means the contactor is not closed when it should be
 				logic_switch_mode(state, LOGIC_MODE_NOT_CONTACTOR_CLOSED, NOW());
 				break;
 			}
+			// Precharge off, contactor on
+			HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_SET);
 			logic_running_submode_t running_submode = (logic_running_submode_t)debounce_controller_get_state(&state->mode_debounce);
 			switch (running_submode) {
 				case LOGIC_RUNNING_RC: {
@@ -276,7 +274,7 @@ void logic_run(
 			counter++;
 			if (counter > 5){
 				counter = 0;
-				logic_switch_mode(state, LOGIC_MODE_RECOVERING, util_has_elapsed(NOW(), state->last_mode_set_time, 30000)); // 30 second delay
+				logic_switch_mode(state, LOGIC_MODE_RECOVERING, util_has_elapsed(NOW(), state->last_mode_set_time, NOT_CONTACTOR_CLOSED_DELAY)); // 30 second delay
 			}
 				
 			logic_switch_mode(state, LOGIC_MODE_RECOVERING, util_has_elapsed(NOW(), state->last_mode_set_time, CONTACTOR_CLOSED_DELAY));

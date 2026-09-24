@@ -14,6 +14,7 @@
 #define PRECHARGE_START_DELAY  (200) // ms, wait from boot before starting precharge
 #define PRECHARGE_DURATION     (5000) // ms, how long to run precharge before closing contactor
 #define CONTACTOR_CLOSED_DELAY (100) // ms, how long to wait after contactor is requested to be closed before considering it fully closed
+#define CONTACTOR_OPEN_LOOPING_DELAY (30000) // ms, how long to wait after contactor is requested to be closed before considering it fully closed when the contactor is not actually closing (open looping) after running more than 5 times in NOT_CONTACTOR_CLOSED mode
 #define RECOVERING_DELAY       (5000) // ms, how long to wait after transistioning after a fault (E-STOP, RC disconnect, CAN disconnect) before allowing to transition back to STARTING mode/precharge sequence
 
 #define IBUS_CHANNEL_THROTTLE (1) // 1500 = full stop, 2000 = full throttle forward
@@ -124,7 +125,7 @@ typedef struct {
 	uint16_t output_throttle_pwm; // 1000-2000, the PWM value sent to the motor controller in the current/last iteration. Always set as a function of output_throttle_erpm.
 	uint16_t output_steering_pwm; // 1000-2000, PWM value sent to the steering servo in the current/last iteration
 	uint32_t last_can_vesc_set_rpm_tx_time; // time of the last sent CAN set (E)RPM message (to VESC)
-
+	uint32_t counter; // counter for how many times NOT_CONTACTOR_CLOSED mode has been entered, to avoid getting stuck in that mode if the contactor is not closed
 	uint32_t can_err; // debugging purposes, last CAN non-zero error code
 } logic_state_t;
 
