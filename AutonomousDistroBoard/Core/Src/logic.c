@@ -191,7 +191,7 @@ void logic_run(
 			break;
 		}
 		case LOGIC_MODE_RUNNING: { //-------------------------------------------------//
-			if (HAL_GPIO_ReadPin(ESTOP_CLOSED_Pin, ESTOP_CLOSED_GPIO_Port) == GPIO_PIN_SET) {
+			if (HAL_GPIO_ReadPin(ESTOP_CLOSED_GPIO_Port,ESTOP_CLOSED_Pin) == GPIO_PIN_SET) {
 				// If the estop is closed, it means the contactor is not closed when it should be
 				logic_switch_mode(state, LOGIC_MODE_NOT_CONTACTOR_CLOSED, NOW());
 				break;
