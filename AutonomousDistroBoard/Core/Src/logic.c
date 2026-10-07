@@ -28,7 +28,7 @@ void logic_init(logic_state_t* state) {
 	);
 	debounce_controller_init(
 		&state->contactor_fb_debounce,
-		CONTACTOR_FB_STATE_LOW,
+		CONTACTOR_FB_FAULT,
 		CONTACTOR_FB_DEBOUNCE,
 		CONTACTOR_FB_ACCUMULATING_DEBOUNCE
 	);
