@@ -13,7 +13,7 @@ static logic_state_t* g_logic_state_ptr = NULL;
 void logic_init(logic_state_t* state) {
 	state->mode = LOGIC_MODE_STARTING;
 	state->last_mode_set_time = NOW();
-	state->counter = 0;
+	state->NOT_CONTACTOR_CLOSED_counter = 0;
 	debounce_controller_init(
 		&state->estop_debounce,
 		SW_ESTOP_STATE_LOW,
@@ -196,6 +196,7 @@ void logic_run(
 				logic_switch_mode(state, LOGIC_MODE_NOT_CONTACTOR_CLOSED, NOW());
 				break;
 			}
+			state->NOT_CONTACTOR_CLOSED_counter = 0;
 			// Precharge off, contactor on
 			HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_RESET);
 			HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_SET);
@@ -268,16 +269,23 @@ void logic_run(
 			// Precharge off, contactor off
 			HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_RESET);
 			HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_RESET);
+			state->output_throttle_erpm = 0;
+			state->output_steering_pwm = STEERING_PWM_CENTER;
 			// This mode is only used for when contactor is opened when it should be closed and should not be entered during normal operation
 			// switch to Recovering mode after 5 second delay
 			// increment counter to avoid getting stuck in this mode if the contactor is not closed
-			state->counter++;
-			if (state->counter > 5){
-				state->counter = 0;
-				logic_switch_mode(state, LOGIC_MODE_RECOVERING, util_has_elapsed(NOW(), state->last_mode_set_time, CONTACTOR_OPEN_LOOPING_DELAY)); // 30 second delay
+			
+			if (state->NOT_CONTACTOR_CLOSED_counter > 5){
+				if(util_has_elapsed(NOW(), state->last_mode_set_time, CONTACTOR_OPEN_LOOPING_DELAY)){
+					state->NOT_CONTACTOR_CLOSED_counter++;
+					logic_switch_mode(state, LOGIC_MODE_RECOVERING, NOW());
+					state->NOT_CONTACTOR_CLOSED_counter++;
+				} 
 			}
-				
-			logic_switch_mode(state, LOGIC_MODE_RECOVERING, util_has_elapsed(NOW(), state->last_mode_set_time, CONTACTOR_CLOSED_DELAY));
+			if(util_has_elapsed(NOW(), state->last_mode_set_time, CONTACTOR_CLOSED_DELAY)){
+				logic_switch_mode(state, LOGIC_MODE_RECOVERING, NOW());
+				state->NOT_CONTACTOR_CLOSED_counter++;
+			}
 			break;
 		}
 		case LOGIC_MODE_ESTOPPED: {
@@ -395,10 +403,10 @@ void logic_run(
 	// Blink LED
 	uint16_t led_period = 0;
 	switch (state->mode) {
-		case LOGIC_MODE_STARTING:          led_period = LED_STARTING_PERIOD;          break;
-		case LOGIC_MODE_PRECHARGING:       led_period = LED_PRECHARGING_PERIOD;       break;
-		case LOGIC_MODE_CONTACTOR_CLOSING: led_period = LED_NOT_CONTACTOR_CLOSED_PERIOD; break;
-		case LOGIC_MODE_NOT_CONTACTOR_CLOSED:    led_period = LED_NOT_CONTACTOR_CLOSED_PERIOD;    break;
+		case LOGIC_MODE_STARTING:          		led_period = LED_STARTING_PERIOD;          		break;
+		case LOGIC_MODE_PRECHARGING:       		led_period = LED_PRECHARGING_PERIOD;       		break;
+		case LOGIC_MODE_CONTACTOR_CLOSING: 		led_period = LED_CONTACTOR_CLOSING_PERIOD; 		break;
+		case LOGIC_MODE_NOT_CONTACTOR_CLOSED: 	led_period = LED_NOT_CONTACTOR_CLOSED_PERIOD;   break;
 		case LOGIC_MODE_RUNNING: {
 			logic_running_submode_t running_submode = (logic_running_submode_t)debounce_controller_get_state(&state->mode_debounce);
 			switch (running_submode) {
