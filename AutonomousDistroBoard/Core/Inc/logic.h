@@ -30,8 +30,13 @@
 #define SW_ESTOP_PWM_THRESHOLD         (1500) // if the ESTOP channel goes above this value, consider the remote estop to be triggered
 #define SW_ESTOP_DEBOUNCE              (200)  // ms, require the ESTOP channel to be above the threshold for at least this long before considering the remote estop to be triggered
 #define SW_ESTOP_ACCUMULATING_DEBOUNCE (30)   // ms, when the rising ESTOP is debouncing/accumulating, require the ESTOP channel to be below the threshold for at least this long before resetting the debounce timer
-#define SW_ESTOP_STATE_LOW              (0)   // the value ESTOP low correlates to in relation to the debounce controller
-#define SW_ESTOP_STATE_HIGH             (1)   // the value ESTOP high correlates to in relation to the debounce controller
+#define SW_ESTOP_STATE_LOW             (0)   // the value ESTOP low correlates to in relation to the debounce controller
+#define SW_ESTOP_STATE_HIGH            (1)   // the value ESTOP high correlates to in relation to the debounce controller
+
+#define CONTACTOR_FB_OK       			   (0)	// pin HIGH  = estop loop closed (healthy)
+#define CONTACTOR_FB_FAULT 				   (1)	// pin LOW   = estop loop open  (fault)
+#define CONTACTOR_FB_DEBOUNCE              (50)	// ms, require the contactor feedback pin to be in faulty state for at least this long before considering the contactor feedback to be faulty
+#define CONTACTOR_FB_ACCUMULATING_DEBOUNCE (15)	// ms, during a transition, how long signal must return to healthy state before considering the contactor feedback to be faulty
 
 #define SW_MODE_RC_PWM_VALUE             (1000) // the value to map the MODE channel to when in RC mode
 #define SW_MODE_AUTONOMOUS_PWM_VALUE     (1500) // the value to map the MODE channel to when in autonomous mode
@@ -110,6 +115,7 @@ typedef struct {
 	
 	debounce_controller_t estop_debounce; // debounce controller for the remote estop channel
 	debounce_controller_t mode_debounce; // debounce controller for the remote mode channel
+	debounce_controller_t contactor_fb_debounce; // debounce controller for the contactor feedback pin
 
 	volatile uint16_t can_current_throttle_erpm; // 0-MAX_ERPM, updated by CAN RX callback
 	volatile uint16_t can_current_steering_pwm; // 1000-2000, updated by CAN RX callback
