@@ -14,6 +14,7 @@
 #define PRECHARGE_START_DELAY  (200) // ms, wait from boot before starting precharge
 #define PRECHARGE_DURATION     (5000) // ms, how long to run precharge before closing contactor
 #define CONTACTOR_CLOSED_DELAY (100) // ms, how long to wait after contactor is requested to be closed before considering it fully closed
+#define CONTACTOR_OPEN_LOOPING_DELAY (30000) // ms, how long to wait after contactor is requested to be closed before considering it fully closed when the contactor is not actually closing (open looping) after running more than 5 times in NOT_CONTACTOR_CLOSED mode
 #define RECOVERING_DELAY       (5000) // ms, how long to wait after transistioning after a fault (E-STOP, RC disconnect, CAN disconnect) before allowing to transition back to STARTING mode/precharge sequence
 
 #define IBUS_CHANNEL_THROTTLE (1) // 1500 = full stop, 2000 = full throttle forward
@@ -29,8 +30,13 @@
 #define SW_ESTOP_PWM_THRESHOLD         (1500) // if the ESTOP channel goes above this value, consider the remote estop to be triggered
 #define SW_ESTOP_DEBOUNCE              (200)  // ms, require the ESTOP channel to be above the threshold for at least this long before considering the remote estop to be triggered
 #define SW_ESTOP_ACCUMULATING_DEBOUNCE (30)   // ms, when the rising ESTOP is debouncing/accumulating, require the ESTOP channel to be below the threshold for at least this long before resetting the debounce timer
-#define SW_ESTOP_STATE_LOW              (0)   // the value ESTOP low correlates to in relation to the debounce controller
-#define SW_ESTOP_STATE_HIGH             (1)   // the value ESTOP high correlates to in relation to the debounce controller
+#define SW_ESTOP_STATE_LOW             (0)   // the value ESTOP low correlates to in relation to the debounce controller
+#define SW_ESTOP_STATE_HIGH            (1)   // the value ESTOP high correlates to in relation to the debounce controller
+
+#define CONTACTOR_FB_OK       			   (0)	// pin HIGH  = estop loop closed (healthy)
+#define CONTACTOR_FB_FAULT 				   (1)	// pin LOW   = estop loop open  (fault)
+#define CONTACTOR_FB_DEBOUNCE              (50)	// ms, require the contactor feedback pin to be in faulty state for at least this long before considering the contactor feedback to be faulty
+#define CONTACTOR_FB_ACCUMULATING_DEBOUNCE (15)	// ms, during a transition, how long signal must return to healthy state before considering the contactor feedback to be faulty
 
 #define SW_MODE_RC_PWM_VALUE             (1000) // the value to map the MODE channel to when in RC mode
 #define SW_MODE_AUTONOMOUS_PWM_VALUE     (1500) // the value to map the MODE channel to when in autonomous mode
@@ -54,16 +60,17 @@
 #define CAN_VESC_STATUS_1_TIMEOUT  (200)    // ms, if we have not received a VESC status 1 message within this time, consider the VESC connection to be lost when trying to read the current ERPM for urgent stop mode
 
 // Really these are half periods b/c it is the rate at which the LED toggles
-#define LED_STARTING_PERIOD            (100)  // ms
-#define LED_PRECHARGING_PERIOD         (400)  // ms
-#define LED_CONTACTOR_CLOSING_PERIOD   (50)   // ms
-#define LED_RUNNING_RC_PERIOD          (1000) // ms
-#define LED_RUNNING_AUTONOMOUS_PERIOD  (250)  // ms
-#define LED_RUNNING_URGENT_STOP_PERIOD (50)  // ms
-#define LED_ESTOPPED_PERIOD            (0)    // solid on
-#define LED_RC_DISCONNECTED_PERIOD     (0)    // solid on
-#define LED_CAN_DISCONNECTED_PERIOD    (0)    // solid on
-#define LED_RECOVERING_PERIOD          (2000) // ms
+#define LED_STARTING_PERIOD             (100)  // ms
+#define LED_PRECHARGING_PERIOD          (400)  // ms
+#define LED_CONTACTOR_CLOSING_PERIOD    (50)   // ms
+#define LED_NOT_CONTACTOR_CLOSED_PERIOD (0)  // solid on
+#define LED_RUNNING_RC_PERIOD           (1000) // ms
+#define LED_RUNNING_AUTONOMOUS_PERIOD   (250)  // ms
+#define LED_RUNNING_URGENT_STOP_PERIOD  (50)  // ms
+#define LED_ESTOPPED_PERIOD             (0)    // solid on
+#define LED_RC_DISCONNECTED_PERIOD      (0)    // solid on
+#define LED_CAN_DISCONNECTED_PERIOD     (0)    // solid on
+#define LED_RECOVERING_PERIOD           (2000) // ms
 
 #define THROTTLE_PWM_LOW  (1000)
 #define THROTTLE_PWM_HIGH (2000)
@@ -85,6 +92,7 @@ typedef enum {
 	LOGIC_MODE_PRECHARGING,
 	LOGIC_MODE_CONTACTOR_CLOSING,
 	LOGIC_MODE_RUNNING,
+	LOGIC_MODE_NOT_CONTACTOR_CLOSED,
 	LOGIC_MODE_ESTOPPED,
 	LOGIC_MODE_RC_DISCONNECTED,
 	LOGIC_MODE_CAN_DISCONNECTED,
@@ -107,6 +115,7 @@ typedef struct {
 	
 	debounce_controller_t estop_debounce; // debounce controller for the remote estop channel
 	debounce_controller_t mode_debounce; // debounce controller for the remote mode channel
+	debounce_controller_t contactor_fb_debounce; // debounce controller for the contactor feedback pin
 
 	volatile uint16_t can_current_throttle_erpm; // 0-MAX_ERPM, updated by CAN RX callback
 	volatile uint16_t can_current_steering_pwm; // 1000-2000, updated by CAN RX callback
@@ -122,7 +131,7 @@ typedef struct {
 	uint16_t output_throttle_pwm; // 1000-2000, the PWM value sent to the motor controller in the current/last iteration. Always set as a function of output_throttle_erpm.
 	uint16_t output_steering_pwm; // 1000-2000, PWM value sent to the steering servo in the current/last iteration
 	uint32_t last_can_vesc_set_rpm_tx_time; // time of the last sent CAN set (E)RPM message (to VESC)
-
+	uint32_t NOT_CONTACTOR_CLOSED_counter; // counter for how many times NOT_CONTACTOR_CLOSED mode has been entered, to avoid getting stuck in that mode if the contactor is not closed
 	uint32_t can_err; // debugging purposes, last CAN non-zero error code
 } logic_state_t;
 
