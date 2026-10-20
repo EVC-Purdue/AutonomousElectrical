@@ -13,7 +13,7 @@ static logic_state_t* g_logic_state_ptr = NULL;
 void logic_init(logic_state_t* state) {
 	state->mode = LOGIC_MODE_STARTING;
 	state->last_mode_set_time = NOW();
-	state->NOT_CONTACTOR_CLOSED_counter = 0;
+	state->not_contactor_closed_counter = 0;
 	debounce_controller_init(
 		&state->estop_debounce,
 		SW_ESTOP_STATE_LOW,
@@ -202,12 +202,12 @@ void logic_run(
 			break;
 		}
 		case LOGIC_MODE_RUNNING: { //-------------------------------------------------//
-			if (HAL_GPIO_ReadPin(ESTOP_CLOSED_GPIO_Port,ESTOP_CLOSED_Pin) == GPIO_PIN_SET) {
-				// If the estop is closed, it means the contactor is not closed when it should be
+			if (debounce_controller_get_state(&state->contactor_fb_debounce) == CONTACTOR_FB_FAULT) {
+				// If the contactor feedback is faulty, it means the contactor is not closed when it should be
 				logic_switch_mode(state, LOGIC_MODE_NOT_CONTACTOR_CLOSED, NOW());
 				break;
 			}
-			state->NOT_CONTACTOR_CLOSED_counter = 0;
+			state->not_contactor_closed_counter = 0;
 			// Precharge off, contactor on
 			HAL_GPIO_WritePin(PRECHARGE_EN_GPIO_Port, PRECHARGE_EN_Pin, GPIO_PIN_RESET);
 			HAL_GPIO_WritePin(MAIN_COIL_EN_GPIO_Port, MAIN_COIL_EN_Pin, GPIO_PIN_SET);
@@ -286,15 +286,17 @@ void logic_run(
 			// switch to Recovering mode after 5 second delay
 			// increment counter to avoid getting stuck in this mode if the contactor is not closed
 			
-			if (state->NOT_CONTACTOR_CLOSED_counter > 5){
+			if (state->not_contactor_closed_counter > 5){
 				if(util_has_elapsed(NOW(), state->last_mode_set_time, CONTACTOR_OPEN_LOOPING_DELAY)){
 					logic_switch_mode(state, LOGIC_MODE_RECOVERING, NOW());
-					state->NOT_CONTACTOR_CLOSED_counter++;
+					state->not_contactor_closed_counter++;
 				} 
 			}
-			if(util_has_elapsed(NOW(), state->last_mode_set_time, CONTACTOR_CLOSED_DELAY)){
-				logic_switch_mode(state, LOGIC_MODE_RECOVERING, NOW());
-				state->NOT_CONTACTOR_CLOSED_counter++;
+			else {
+				if(util_has_elapsed(NOW(), state->last_mode_set_time, CONTACTOR_CLOSED_DELAY)){
+					logic_switch_mode(state, LOGIC_MODE_RECOVERING, NOW());
+					state->not_contactor_closed_counter++;
+				}
 			}
 			break;
 		}

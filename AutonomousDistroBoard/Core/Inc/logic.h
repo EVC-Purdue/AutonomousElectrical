@@ -131,7 +131,7 @@ typedef struct {
 	uint16_t output_throttle_pwm; // 1000-2000, the PWM value sent to the motor controller in the current/last iteration. Always set as a function of output_throttle_erpm.
 	uint16_t output_steering_pwm; // 1000-2000, PWM value sent to the steering servo in the current/last iteration
 	uint32_t last_can_vesc_set_rpm_tx_time; // time of the last sent CAN set (E)RPM message (to VESC)
-	uint32_t NOT_CONTACTOR_CLOSED_counter; // counter for how many times NOT_CONTACTOR_CLOSED mode has been entered, to avoid getting stuck in that mode if the contactor is not closed
+	uint32_t not_contactor_closed_counter; // counter for how many times NOT_CONTACTOR_CLOSED mode has been entered, to avoid getting stuck in that mode if the contactor is not closed
 	uint32_t can_err; // debugging purposes, last CAN non-zero error code
 } logic_state_t;
 
