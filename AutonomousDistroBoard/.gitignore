@@ -4,3 +4,4 @@ Release/
 .cache/
 .metadata/
 .DS_Store
+.osx.project
