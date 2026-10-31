@@ -59,6 +59,8 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define ESTOP_CLOSED_Pin GPIO_PIN_2
+#define ESTOP_CLOSED_GPIO_Port GPIOE
 #define MAIN_COIL_EN_Pin GPIO_PIN_5
 #define MAIN_COIL_EN_GPIO_Port GPIOE
 #define PRECHARGE_EN_Pin GPIO_PIN_6

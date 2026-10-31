@@ -101,9 +101,13 @@ local.properties
 .scala_dependencies
 .worksheet
 
+# vscode
+.vscode/
+
 # Uncomment this line if you wish to ignore the project description file.
 # Typically, this file would be tracked if it contains build/dependency configurations:
 #.project
+.osx.project
 
 ### Eclipse Patch ###
 # Spring Boot Tooling

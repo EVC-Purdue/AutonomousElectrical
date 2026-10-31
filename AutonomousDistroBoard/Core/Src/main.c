@@ -542,6 +542,12 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(CAN_S_GPIO_Port, CAN_S_Pin, GPIO_PIN_RESET);
 
+  /*Configure GPIO pin : ESTOP_CLOSED_Pin */
+  GPIO_InitStruct.Pin = ESTOP_CLOSED_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(ESTOP_CLOSED_GPIO_Port, &GPIO_InitStruct);
+
   /*Configure GPIO pins : MAIN_COIL_EN_Pin PRECHARGE_EN_Pin LED_OUT_Pin */
   GPIO_InitStruct.Pin = MAIN_COIL_EN_Pin|PRECHARGE_EN_Pin|LED_OUT_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
