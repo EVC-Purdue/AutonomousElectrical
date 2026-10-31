@@ -286,7 +286,7 @@ void logic_run(
 			if (state->not_contactor_closed_counter > 5){
 				if(util_has_elapsed(NOW(), state->last_mode_set_time, CONTACTOR_OPEN_LOOPING_DELAY)){
 					logic_switch_mode(state, LOGIC_MODE_RECOVERING, NOW());
-					state->not_contactor_closed_counter++;
+					state->not_contactor_closed_counter=0;
 				} 
 			}
 			else {
