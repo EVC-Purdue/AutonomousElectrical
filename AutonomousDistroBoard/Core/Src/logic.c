@@ -141,9 +141,6 @@ void logic_run(
 	// All states: check contactor feedback
 	bool fb_raw = (HAL_GPIO_ReadPin(ESTOP_CLOSED_GPIO_Port, ESTOP_CLOSED_Pin) == GPIO_PIN_SET);
 	debounce_controller_update(&state->contactor_fb_debounce,fb_raw ? CONTACTOR_FB_FAULT : CONTACTOR_FB_OK, NOW());
-	if (debounce_controller_get_state(&state->contactor_fb_debounce) == CONTACTOR_FB_FAULT) {
-		logic_switch_mode(state, LOGIC_MODE_NOT_CONTACTOR_CLOSED, NOW());
-	}
 	// Process iBUS data
 	ibus_process(&state->ibus, sbus_huart);
 
